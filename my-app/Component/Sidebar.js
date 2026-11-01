@@ -16,7 +16,6 @@ export default function Sidebar({
         { name: 'Dashboard', href: '/' },
         { name: 'Penalty Entries', href: '/entries' },
         { name: 'Member Summary', href: '/summary' },
-        { name: 'Settings', href: '/settings' },
     ];
 
     return (
