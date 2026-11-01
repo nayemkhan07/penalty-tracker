@@ -48,7 +48,7 @@ export default function MemberSummary() {
             return false;
         }
 
-        const datePattern = /^\d{4}-\d{2}-\d{2} $/;
+        const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
         if (!datePattern.test(date)) {
             return false;
