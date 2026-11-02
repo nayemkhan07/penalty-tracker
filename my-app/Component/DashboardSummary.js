@@ -85,10 +85,6 @@ export default function DashboardSummary() {
                         <p className="text-sm font-medium text-stone-500">
                             {card.title}
                         </p>
-
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-lg text-emerald-900">
-                            {card.icon}
-                        </span>
                     </div>
 
                     <h2

@@ -151,23 +151,6 @@ export default function PenaltyEntries() {
         closeModal();
     }
 
-    // Calculate totals.
-    const totalFine = entries.reduce(
-        (total, entry) => total + Number(entry.amount || 0),
-        0
-    );
-
-    const dueFine = entries
-        .filter((entry) => entry.status === 'Pending')
-        .reduce(
-            (total, entry) => total + Number(entry.amount || 0),
-            0
-        );
-
-    const formatTaka = (value) =>
-        `৳ ${value.toLocaleString('en-BD', {
-            maximumFractionDigits: 2,
-        })}`;
 
     // Wait until saved entries have loaded.
     if (!isLoaded) {
@@ -203,38 +186,7 @@ export default function PenaltyEntries() {
                     </button>
                 </div>
 
-                {/* Summary cards */}
-                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm text-slate-500">
-                            Total Entries
-                        </p>
 
-                        <h2 className="mt-3 text-2xl font-bold">
-                            {entries.length}
-                        </h2>
-                    </div>
-
-                    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm text-slate-500">
-                            Total Fine Amount
-                        </p>
-
-                        <h2 className="mt-3 text-2xl font-bold">
-                            {formatTaka(totalFine)}
-                        </h2>
-                    </div>
-
-                    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm text-slate-500">
-                            Due Amount
-                        </p>
-
-                        <h2 className="mt-3 text-2xl font-bold text-red-600">
-                            {formatTaka(dueFine)}
-                        </h2>
-                    </div>
-                </div>
 
                 {/* Entries table */}
                 <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
@@ -286,9 +238,9 @@ export default function PenaltyEntries() {
                                             {entry.goalCount}
                                         </td>
 
-                                        <td className="px-4 py-4">
+                                        {/* <td className="px-4 py-4">
                                             {formatTaka(Number(entry.amount || 0))}
-                                        </td>
+                                        </td> */}   
 
                                         <td className="px-4 py-4">
                                             <span
