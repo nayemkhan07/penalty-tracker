@@ -49,10 +49,6 @@ export default function Sidebar({
                                     <h1 className="text-base font-semibold text-stone-900">
                                         Penalty Tracker
                                     </h1>
-
-                                    <p className="text-xs text-stone-500">
-                                        SaaS Admin Panel
-                                    </p>
                                 </div>
 
                                 <button
