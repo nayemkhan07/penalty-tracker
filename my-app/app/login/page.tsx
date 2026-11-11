@@ -51,7 +51,7 @@ export default function LoginPage() {
                 <form onSubmit={handleLogin} className="mt-8 space-y-5">
 
                     <div>
-                        <label className="mb-2 block text-sm font-medium">
+                        <label className="mb-2 block text-sm font-medium text-green-950">
                             Email Address
                         </label>
 
@@ -61,12 +61,12 @@ export default function LoginPage() {
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Enter your email"
                             required
-                            className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-green-800"
+                            className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-green-800 text-green-950"
                         />
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-sm font-medium">
+                        <label className="mb-2 block text-sm font-medium text-green-950">
                             Password
                         </label>
 
@@ -76,7 +76,7 @@ export default function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter your password"
                             required
-                            className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-green-800"
+                            className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-green-800 text-green-950   "
                         />
                     </div>
 
