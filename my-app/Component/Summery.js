@@ -1,48 +1,47 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/Lib/firebase';
 
 export default function MemberSummary() {
     const [entries, setEntries] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState('all');
     const [isLoaded, setIsLoaded] = useState(false);
+    const [error, setError] = useState('');
 
-    // Load penalty data from localStorage
+    // Realtime data from Firebase Firestore
     useEffect(() => {
-        function loadEntries() {
-            try {
-                const savedData = localStorage.getItem('penaltyEntries');
+        const entriesRef = collection(db, 'penaltyEntries');
 
-                if (savedData) {
-                    const data = JSON.parse(savedData);
+        const unsubscribe = onSnapshot(
+            entriesRef,
+            (snapshot) => {
+                const firebaseEntries = snapshot.docs.map((document) => ({
+                    ...document.data(),
+                    id: document.id,
+                    status:
+                        String(document.data().status || '').toLowerCase() === 'paid'
+                            ? 'Paid'
+                            : 'Pending',
+                }));
 
-                    if (Array.isArray(data)) {
-                        setEntries(data);
-                    } else {
-                        setEntries([]);
-                    }
-                } else {
-                    setEntries([]);
-                }
-            } catch (error) {
-                console.log('Error loading penalty data:', error);
-                setEntries([]);
+                setEntries(firebaseEntries);
+                setError('');
+                setIsLoaded(true);
+            },
+            (error) => {
+                console.error('Firestore error:', error);
+                setError('Failed to load Member Summary from Firebase.');
+                setIsLoaded(true);
             }
+        );
 
-            setIsLoaded(true);
-        }
-
-        loadEntries();
-
-        window.addEventListener('storage', loadEntries);
-
-        return () => {
-            window.removeEventListener('storage', loadEntries);
-        };
+        return () => unsubscribe();
     }, []);
 
-    // Check if the date is valid
+    // Validate date
     function isValidDate(date) {
         if (typeof date !== 'string') {
             return false;
@@ -54,147 +53,123 @@ export default function MemberSummary() {
             return false;
         }
 
-        const parts = date.split('-');
-
-        const year = Number(parts[0]);
-        const month = Number(parts[1]);
-        const day = Number(parts[2]);
-
+        const [year, month, day] = date.split('-').map(Number);
         const newDate = new Date(year, month - 1, day);
 
-        if (year < 2000 || year > 2100) {
-            return false;
-        }
-
-        if (newDate.getFullYear() !== year) {
-            return false;
-        }
-
-        if (newDate.getMonth() !== month - 1) {
-            return false;
-        }
-
-        if (newDate.getDate() !== day) {
-            return false;
-        }
-
-        return true;
+        return (
+            year >= 2000 &&
+            year <= 2100 &&
+            newDate.getFullYear() === year &&
+            newDate.getMonth() === month - 1 &&
+            newDate.getDate() === day
+        );
     }
 
-    // Get months from the existing entries
-    const months = [];
+    // Get available months
+    const months = useMemo(() => {
+        const availableMonths = [];
 
-    for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
+        entries.forEach((entry) => {
+            if (!isValidDate(entry.date)) {
+                return;
+            }
 
-        if (!isValidDate(entry.date)) {
-            continue;
-        }
+            const month = entry.date.slice(0, 7);
 
-        const month = entry.date.slice(0, 7);
+            if (!availableMonths.includes(month)) {
+                availableMonths.push(month);
+            }
+        });
 
-        if (!months.includes(month)) {
-            months.push(month);
-        }
-    }
+        return availableMonths.sort((a, b) => b.localeCompare(a));
+    }, [entries]);
 
-    // Show the latest month first
-    months.sort((a, b) => b.localeCompare(a));
-
-    // Reset the filter if the selected month no longer exists
+    // Reset month filter if selected month no longer exists
     useEffect(() => {
         if (
             selectedMonth !== 'all' &&
             !months.includes(selectedMonth)
         ) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedMonth('all');
         }
-    }, [selectedMonth, entries]);
+    }, [selectedMonth, months]);
 
-    // Filter entries by month
-    const filteredEntries = [];
-
-    for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
-
-        if (!isValidDate(entry.date)) {
-            continue;
-        }
-
-        if (selectedMonth === 'all') {
-            filteredEntries.push(entry);
-        } else if (entry.date.slice(0, 7) === selectedMonth) {
-            filteredEntries.push(entry);
-        }
-    }
-
-    // Create a summary for each member
-    const memberSummary = [];
-
-    for (let i = 0; i < filteredEntries.length; i++) {
-        const entry = filteredEntries[i];
-        const name = entry.member;
-
-        if (!name) {
-            continue;
-        }
-
-        let memberFound = false;
-
-        for (let j = 0; j < memberSummary.length; j++) {
-            if (memberSummary[j].name === name) {
-                const amount = Number(entry.amount) || 0;
-
-                memberSummary[j].totalFine += amount;
-
-                if (entry.status === 'Pending') {
-                    memberSummary[j].dueFine += amount;
-                }
-
-                memberFound = true;
-                break;
+    // Filter entries by selected month
+    const filteredEntries = useMemo(() => {
+        return entries.filter((entry) => {
+            if (!isValidDate(entry.date)) {
+                return false;
             }
-        }
 
-        // Add a new member if they are not in the summary
-        if (!memberFound) {
+            if (selectedMonth === 'all') {
+                return true;
+            }
+
+            return entry.date.slice(0, 7) === selectedMonth;
+        });
+    }, [entries, selectedMonth]);
+
+    // Calculate member summary
+    const memberSummary = useMemo(() => {
+        const summary = {};
+
+        filteredEntries.forEach((entry) => {
+            const name = entry.member;
+
+            if (!name) {
+                return;
+            }
+
             const amount = Number(entry.amount) || 0;
 
-            const newMember = {
-                name: name,
-                totalFine: amount,
-                dueFine: entry.status === 'Pending' ? amount : 0,
-            };
+            if (!summary[name]) {
+                summary[name] = {
+                    name,
+                    totalFine: 0,
+                    dueFine: 0,
+                };
+            }
 
-            memberSummary.push(newMember);
-        }
-    }
+            summary[name].totalFine += amount;
 
-    // Sort members by total fine
-    memberSummary.sort((a, b) => b.totalFine - a.totalFine);
+            if (
+                String(entry.status || '').toLowerCase() === 'pending'
+            ) {
+                summary[name].dueFine += amount;
+            }
+        });
 
-    // Calculate the grand total
-    let totalFine = 0;
-    let totalDue = 0;
+        return Object.values(summary).sort(
+            (a, b) => b.totalFine - a.totalFine
+        );
+    }, [filteredEntries]);
 
-    for (let i = 0; i < memberSummary.length; i++) {
-        totalFine += memberSummary[i].totalFine;
-        totalDue += memberSummary[i].dueFine;
-    }
+    // Calculate grand total
+    const totalFine = useMemo(() => {
+        return memberSummary.reduce(
+            (total, member) => total + member.totalFine,
+            0
+        );
+    }, [memberSummary]);
 
-    // Format the amount in Bangladeshi Taka
+    const totalDue = useMemo(() => {
+        return memberSummary.reduce(
+            (total, member) => total + member.dueFine,
+            0
+        );
+    }, [memberSummary]);
+
+    // Format Bangladeshi Taka
     function formatTaka(amount) {
         return `৳${amount.toLocaleString('en-BD', {
             maximumFractionDigits: 2,
         })}`;
     }
 
-    // Convert 2026-10 into October 2026
+    // Format month
     function formatMonth(month) {
-        const parts = month.split('-');
-
-        const year = Number(parts[0]);
-        const monthNumber = Number(parts[1]);
+        const [year, monthNumber] = month.split('-').map(Number);
 
         return new Date(year, monthNumber - 1, 1).toLocaleDateString(
             'en-US',
@@ -205,11 +180,20 @@ export default function MemberSummary() {
         );
     }
 
-    // Show loading message before the data loads
+    // Loading state
     if (!isLoaded) {
         return (
             <div className="p-6 text-stone-500">
-                Loading member summary...
+                Loading member summary from Firebase...
+            </div>
+        );
+    }
+
+    // Firebase error
+    if (error) {
+        return (
+            <div className="m-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {error}
             </div>
         );
     }
@@ -219,7 +203,7 @@ export default function MemberSummary() {
             <div className="mx-auto max-w-7xl">
                 <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
 
-                    {/* Header and month filter */}
+                    {/* Header and Month Filter */}
                     <div className="flex flex-col gap-4 border-b border-stone-200 p-5 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-xl font-bold text-stone-900">
@@ -258,7 +242,7 @@ export default function MemberSummary() {
                         </div>
                     </div>
 
-                    {/* Member summary table */}
+                    {/* Member Summary Table */}
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[550px] border-collapse text-sm">
                             <thead>
@@ -282,10 +266,11 @@ export default function MemberSummary() {
                                     memberSummary.map((member, index) => (
                                         <tr
                                             key={member.name}
-                                            className={`border-b border-stone-100 transition-colors hover:bg-emerald-50 ${index % 2 === 1
-                                                ? 'bg-stone-50'
-                                                : 'bg-white'
-                                                }`}
+                                            className={`border-b border-stone-100 transition-colors hover:bg-emerald-50 ${
+                                                index % 2 === 1
+                                                    ? 'bg-stone-50'
+                                                    : 'bg-white'
+                                            }`}
                                         >
                                             <td className="px-5 py-3.5 font-medium text-stone-800">
                                                 {member.name}
@@ -330,14 +315,17 @@ export default function MemberSummary() {
                         </table>
                     </div>
 
-                    {/* Number of members */}
+                    {/* Footer */}
                     <div className="border-t border-stone-200 px-5 py-3 text-xs text-stone-500">
                         Showing {memberSummary.length} members
+
                         {selectedMonth !== 'all' &&
                             ` • ${formatMonth(selectedMonth)} only`}
                     </div>
+
                 </section>
             </div>
         </main>
     );
 }
+    
