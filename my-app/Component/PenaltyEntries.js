@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,12 +36,49 @@ const emptyForm = {
     member: '',
     reason: '',
     goalCount: '',
-    status: 'Pending',
-    paymentDate: '',
 };
 
 function formatTaka(amount) {
     return `৳${Number(amount || 0).toLocaleString('en-BD')}`;
+}
+
+// Get payment values from both old and new Firestore documents.
+function normalizeEntry(document) {
+    const data = document.data();
+
+    const amount = Number(data.amount || 0);
+
+    // Old entries may not have paidAmount.
+    const paidAmount =
+        data.paidAmount !== undefined
+            ? Number(data.paidAmount || 0)
+            : data.status?.toLowerCase() === 'paid'
+                ? amount
+                : 0;
+
+    const dueAmount =
+        data.dueAmount !== undefined
+            ? Number(data.dueAmount || 0)
+            : Math.max(0, amount - paidAmount);
+
+    let status = 'Pending';
+
+    if (dueAmount <= 0 && amount > 0) {
+        status = 'Paid';
+    } else if (paidAmount > 0) {
+        status = 'Partial';
+    }
+
+    return {
+        id: document.id,
+        ...data,
+        amount,
+        paidAmount,
+        dueAmount,
+        status,
+        paymentDate: data.paymentDate || '',
+        payments: Array.isArray(data.payments) ? data.payments : [],
+    };
 }
 
 export default function PenaltyEntries() {
@@ -58,27 +94,15 @@ export default function PenaltyEntries() {
     const [fetchError, setFetchError] = useState('');
     const [saveError, setSaveError] = useState('');
 
-    // Real-time data listener from Firestore.
+    // Real-time Firestore listener.
     useEffect(() => {
         const entriesRef = collection(db, 'penaltyEntries');
 
         const unsubscribe = onSnapshot(
             entriesRef,
             (querySnapshot) => {
-                const savedEntries = querySnapshot.docs.map((document) => {
-                    const data = document.data();
+                const savedEntries = querySnapshot.docs.map(normalizeEntry);
 
-                    return {
-                        id: document.id,
-                        ...data,
-                        status:
-                            data.status?.toLowerCase() === 'paid'
-                                ? 'Paid'
-                                : 'Pending',
-                    };
-                });
-
-                // Sort entries by date, newest first.
                 savedEntries.sort((a, b) =>
                     (b.date || '').localeCompare(a.date || '')
                 );
@@ -100,23 +124,17 @@ export default function PenaltyEntries() {
             }
         );
 
-        // Stop listening when the component unmounts.
         return () => unsubscribe();
     }, []);
 
-    // Automatically calculate amount.
     const amount = Number(form.goalCount || 0) * penaltyRate;
 
-    // Handle form changes.
     function handleChange(event) {
         const { name, value } = event.target;
 
         setForm((oldForm) => ({
             ...oldForm,
             [name]: value,
-            ...(name === 'status' && value === 'Pending'
-                ? { paymentDate: '' }
-                : {}),
         }));
     }
 
@@ -135,8 +153,6 @@ export default function PenaltyEntries() {
             member: entry.member || '',
             reason: entry.reason || '',
             goalCount: String(entry.goalCount ?? ''),
-            status: entry.status || 'Pending',
-            paymentDate: entry.paymentDate || '',
         });
 
         setEditingId(entry.id);
@@ -144,7 +160,6 @@ export default function PenaltyEntries() {
         setIsModalOpen(true);
     }
 
-    // Close modal.
     function closeModal() {
         if (isSaving) return;
 
@@ -167,41 +182,85 @@ export default function PenaltyEntries() {
             return;
         }
 
-        if (form.status === 'Paid' && !form.paymentDate) {
-            setSaveError('Please select the payment date.');
+        if (!form.date || !form.member || !form.reason.trim()) {
+            setSaveError('Please complete all required fields.');
             return;
         }
 
-        const entry = {
-            date: form.date,
-            member: form.member,
-            reason: form.reason.trim(),
-            goalCount: penaltyCount,
-            amount: penaltyCount * penaltyRate,
-            status: form.status,
-            paymentDate:
-                form.status === 'Paid' ? form.paymentDate : '',
-        };
+        const newAmount = penaltyCount * penaltyRate;
 
         try {
             setIsSaving(true);
             setSaveError('');
 
             if (editingId !== null) {
-                // Update existing Firestore document.
+                const existingEntry = entries.find(
+                    (entry) => entry.id === editingId
+                );
+
+                if (!existingEntry) {
+                    throw new Error('Entry not found.');
+                }
+
+                const oldPaidAmount = Number(
+                    existingEntry.paidAmount || 0
+                );
+
+                // Do not allow the fine amount to become less than
+                // the amount already paid.
+                if (newAmount < oldPaidAmount) {
+                    setSaveError(
+                        `Amount cannot be less than already paid amount ${formatTaka(oldPaidAmount)}.`
+                    );
+                    return;
+                }
+
+                const updatedDueAmount = newAmount - oldPaidAmount;
+
+                let updatedStatus = 'Pending';
+
+                if (updatedDueAmount === 0 && newAmount > 0) {
+                    updatedStatus = 'Paid';
+                } else if (oldPaidAmount > 0) {
+                    updatedStatus = 'Partial';
+                }
+
+                // Preserve payment information while editing.
                 await updateDoc(
                     doc(db, 'penaltyEntries', editingId),
-                    entry
+                    {
+                        date: form.date,
+                        member: form.member,
+                        reason: form.reason.trim(),
+                        goalCount: penaltyCount,
+                        amount: newAmount,
+                        paidAmount: oldPaidAmount,
+                        dueAmount: updatedDueAmount,
+                        status: updatedStatus,
+                        paymentDate: existingEntry.paymentDate || '',
+                        payments: existingEntry.payments || [],
+                    }
                 );
             } else {
-                // Add new Firestore document.
+                // New entries always start as unpaid.
                 await addDoc(
                     collection(db, 'penaltyEntries'),
-                    entry
+                    {
+                        date: form.date,
+                        member: form.member,
+                        reason: form.reason.trim(),
+                        goalCount: penaltyCount,
+                        amount: newAmount,
+                        paidAmount: 0,
+                        dueAmount: newAmount,
+                        status: 'Pending',
+                        paymentDate: '',
+                        payments: [],
+                    }
                 );
             }
 
-            // onSnapshot will automatically update the entries state.
+            // onSnapshot automatically updates the table.
             setIsModalOpen(false);
             setForm({ ...emptyForm });
             setEditingId(null);
@@ -218,7 +277,6 @@ export default function PenaltyEntries() {
         }
     }
 
-    // Loading state.
     if (!isLoaded) {
         return (
             <main className="min-h-screen bg-stone-50 p-6 text-slate-800">
@@ -324,11 +382,12 @@ export default function PenaltyEntries() {
 
                                         <td className="px-4 py-4">
                                             <span
-                                                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                                    entry.status === 'Paid'
-                                                        ? 'bg-green-100 text-green-800'
+                                                className={`rounded-full px-3 py-1 text-xs font-medium ${entry.status === 'Paid'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : entry.status === 'Partial'
+                                                        ? 'bg-blue-100 text-blue-800'
                                                         : 'bg-amber-100 text-amber-800'
-                                                }`}
+                                                    }`}
                                             >
                                                 {entry.status}
                                             </span>
@@ -521,40 +580,12 @@ export default function PenaltyEntries() {
                                         Amount is calculated automatically.
                                     </p>
                                 </div>
+                            </div>
 
-                                {/* Status */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium">
-                                        Status *
-                                    </label>
-
-                                    <select
-                                        name="status"
-                                        value={form.status}
-                                        onChange={handleChange}
-                                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-green-800 focus:ring-2 focus:ring-green-800/10"
-                                    >
-                                        <option value="Pending">Pending</option>
-                                        <option value="Paid">Paid</option>
-                                    </select>
-                                </div>
-
-                                {/* Payment Date */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium">
-                                        Payment Date {form.status === 'Paid' && '*'}
-                                    </label>
-
-                                    <input
-                                        type="date"
-                                        name="paymentDate"
-                                        value={form.paymentDate}
-                                        onChange={handleChange}
-                                        required={form.status === 'Paid'}
-                                        disabled={form.status !== 'Paid'}
-                                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-green-800 focus:ring-2 focus:ring-green-800/10 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-slate-400"
-                                    />
-                                </div>
+                            {/* Payment information notice */}
+                            <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                                Payment status and payment date will be managed
+                                from the Member Summary page.
                             </div>
 
                             {/* Save Error */}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -10,6 +9,11 @@ export default function DashboardSummary() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [error, setError] = useState('');
 
+    const toMoney = (value) => {
+        const number = Number(value) || 0;
+        return Math.round((number + Number.EPSILON) * 100) / 100;
+    };
+
     // Firebase Realtime Data
     useEffect(() => {
         const entriesRef = collection(db, 'penaltyEntries');
@@ -17,17 +21,37 @@ export default function DashboardSummary() {
         const unsubscribe = onSnapshot(
             entriesRef,
             (snapshot) => {
-                const firebaseEntries = snapshot.docs.map((doc) => ({
-                    ...doc.data(),
-                    id: doc.id,
-                }));
+                const firebaseEntries = snapshot.docs.map((document) => {
+                    const data = document.data();
+                    const amount = toMoney(data.amount);
+
+                    const paidAmount =
+                        data.paidAmount !== undefined
+                            ? toMoney(data.paidAmount)
+                            : String(data.status || '').toLowerCase() === 'paid'
+                                ? amount
+                                : 0;
+
+                    const dueAmount =
+                        data.dueAmount !== undefined
+                            ? toMoney(data.dueAmount)
+                            : Math.max(0, amount - paidAmount);
+
+                    return {
+                        ...data,
+                        id: document.id,
+                        amount,
+                        paidAmount,
+                        dueAmount,
+                    };
+                });
 
                 setEntries(firebaseEntries);
                 setError('');
                 setIsLoaded(true);
             },
-            (error) => {
-                console.error('Firebase Error:', error);
+            (firebaseError) => {
+                console.error('Firebase Error:', firebaseError);
                 setError('Failed to load dashboard data from Firebase.');
                 setIsLoaded(true);
             }
@@ -36,33 +60,27 @@ export default function DashboardSummary() {
         return () => unsubscribe();
     }, []);
 
-    // Format Taka
     const formatTaka = (amount) =>
-        `৳ ${Number(amount || 0).toLocaleString('en-BD', {
+        `৳ ${toMoney(amount).toLocaleString('en-BD', {
             maximumFractionDigits: 2,
         })}`;
 
     // Summary Calculations
     const totalEntries = entries.length;
 
-    const totalFine = entries.reduce(
-        (total, entry) => total + (Number(entry.amount) || 0),
-        0
+    const totalFine = toMoney(
+        entries.reduce((total, entry) => total + entry.amount, 0)
     );
 
-    const dueAmount = entries
-        .filter(
-            (entry) =>
-                String(entry.status || '').toLowerCase() === 'pending'
-        )
-        .reduce(
-            (total, entry) => total + (Number(entry.amount) || 0),
-            0
-        );
+    const paidAmount = toMoney(
+        entries.reduce((total, entry) => total + entry.paidAmount, 0)
+    );
 
-    const paidAmount = totalFine - dueAmount;
+    const dueAmount = toMoney(
+        entries.reduce((total, entry) => total + entry.dueAmount, 0)
+    );
 
-    // Generate Last 6 Months
+    // Last 6 Months Data
     const monthlyData = useMemo(() => {
         const currentDate = new Date();
         const months = [];
@@ -75,10 +93,7 @@ export default function DashboardSummary() {
             );
 
             const year = date.getFullYear();
-            const monthNumber = String(
-                date.getMonth() + 1
-            ).padStart(2, '0');
-
+            const monthNumber = String(date.getMonth() + 1).padStart(2, '0');
             const key = `${year}-${monthNumber}`;
 
             months.push({
@@ -99,45 +114,24 @@ export default function DashboardSummary() {
                 return;
             }
 
-            const [year, month, day] = entry.date
-                .split('-')
-                .map(Number);
-
-            const date = new Date(year, month - 1, day);
-
-            if (
-                date.getFullYear() !== year ||
-                date.getMonth() !== month - 1 ||
-                date.getDate() !== day
-            ) {
-                return;
-            }
-
             const monthKey = entry.date.slice(0, 7);
-
             const currentMonth = months.find(
-                (item) => item.key === monthKey
+                (month) => month.key === monthKey
             );
 
-            if (!currentMonth) {
-                return;
-            }
+            if (!currentMonth) return;
 
-            const amount = Number(entry.amount) || 0;
-
-            currentMonth.total += amount;
-
-            if (
-                String(entry.status || '').toLowerCase() === 'paid'
-            ) {
-                currentMonth.paid += amount;
-            }
+            currentMonth.total += entry.amount;
+            currentMonth.paid += entry.paidAmount;
         });
 
-        return months;
+        return months.map((month) => ({
+            ...month,
+            total: toMoney(month.total),
+            paid: toMoney(month.paid),
+        }));
     }, [entries]);
 
-    // Find highest monthly value for graph scaling
     const maxMonthlyFine = Math.max(
         ...monthlyData.map((month) => month.total),
         0
@@ -164,9 +158,18 @@ export default function DashboardSummary() {
             valueColor: 'text-emerald-950',
         },
         {
+            title: 'Paid Amount',
+            value: formatTaka(paidAmount),
+            description: 'Total collected payments',
+            icon: '✓',
+            iconBg: 'bg-emerald-50',
+            iconColor: 'text-emerald-700',
+            valueColor: 'text-emerald-700',
+        },
+        {
             title: 'Due Amount',
             value: formatTaka(dueAmount),
-            description: 'Unpaid penalty amounts',
+            description: 'Remaining unpaid amounts',
             icon: '⏳',
             iconBg: 'bg-red-50',
             iconColor: 'text-red-600',
@@ -174,11 +177,10 @@ export default function DashboardSummary() {
         },
     ];
 
-    // Loading State
     if (!isLoaded) {
         return (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {[1, 2, 3].map((item) => (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {[1, 2, 3, 4].map((item) => (
                     <div
                         key={item}
                         className="h-36 animate-pulse rounded-xl border border-stone-200 bg-white"
@@ -188,7 +190,6 @@ export default function DashboardSummary() {
         );
     }
 
-    // Error State
     if (error) {
         return (
             <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
@@ -201,8 +202,7 @@ export default function DashboardSummary() {
         <div className="space-y-6">
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {summaryCards.map((card) => (
                     <div
                         key={card.title}
@@ -220,9 +220,7 @@ export default function DashboardSummary() {
                             </div>
                         </div>
 
-                        <h2
-                            className={`mt-4 break-words text-2xl font-bold ${card.valueColor}`}
-                        >
+                        <h2 className={`mt-4 break-words text-2xl font-bold ${card.valueColor}`}>
                             {card.value}
                         </h2>
 
@@ -231,27 +229,22 @@ export default function DashboardSummary() {
                         </p>
                     </div>
                 ))}
-
             </div>
 
-            {/* Monthly Analytics */}
-            <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+            {/* Simple Monthly Graph */}
+            <section className="rounded-xl border border-stone-200 bg-white shadow-sm">
 
-                {/* Graph Header */}
                 <div className="flex flex-col gap-3 border-b border-stone-200 p-5 sm:flex-row sm:items-center sm:justify-between">
-
                     <div>
                         <h2 className="text-lg font-bold text-stone-900">
                             Monthly Analytics
                         </h2>
-
                         <p className="mt-1 text-sm text-stone-500">
-                            Fine collection and payment overview
+                            Last 6 months fine overview
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-stone-600">
-
+                    <div className="flex items-center gap-4 text-xs font-medium text-stone-600">
                         <div className="flex items-center gap-2">
                             <span className="h-3 w-3 rounded-sm bg-emerald-800" />
                             Total Fine
@@ -261,131 +254,61 @@ export default function DashboardSummary() {
                             <span className="h-3 w-3 rounded-sm bg-amber-500" />
                             Paid Amount
                         </div>
-
                     </div>
                 </div>
 
-                {/* Graph Content */}
                 <div className="p-5">
+                    <div className="flex h-64 items-end justify-around gap-3 border-b border-stone-200 pb-0">
+                        {monthlyData.map((month) => {
+                            const totalHeight = maxMonthlyFine > 0
+                                ? (month.total / maxMonthlyFine) * 100
+                                : 0;
 
-                    <div className="mb-5 grid grid-cols-2 gap-3">
+                            const paidHeight = maxMonthlyFine > 0
+                                ? (month.paid / maxMonthlyFine) * 100
+                                : 0;
 
-                        <div className="rounded-lg bg-emerald-50 p-3">
-                            <p className="text-xs font-medium text-emerald-800">
-                                Total Fine
-                            </p>
+                            return (
+                                <div
+                                    key={month.key}
+                                    className="flex h-full flex-1 flex-col items-center justify-end"
+                                >
+                                    <div className="flex h-full w-full items-end justify-center gap-1 sm:gap-2">
+                                        <div
+                                            title={`Total Fine: ${formatTaka(month.total)}`}
+                                            className="w-5 max-w-[40%] rounded-t-md bg-emerald-800 transition-all sm:w-8"
+                                            style={{
+                                                height: `${totalHeight}%`,
+                                                minHeight: month.total > 0 ? '3px' : '0px',
+                                            }}
+                                        />
 
-                            <p className="mt-1 text-lg font-bold text-emerald-950">
-                                {formatTaka(totalFine)}
-                            </p>
-                        </div>
-
-                        <div className="rounded-lg bg-amber-50 p-3">
-                            <p className="text-xs font-medium text-amber-800">
-                                Paid Amount
-                            </p>
-
-                            <p className="mt-1 text-lg font-bold text-amber-900">
-                                {formatTaka(paidAmount)}
-                            </p>
-                        </div>
-
-                    </div>
-
-                    {/* Bar Chart */}
-                    <div className="overflow-x-auto">
-                        <div className="min-w-[520px]">
-
-                            <div
-                                className="relative h-64 border-b border-l border-stone-200"
-                                style={{
-                                    backgroundImage:
-                                        'linear-gradient(to bottom, #e7e5e4 1px, transparent 1px)',
-                                    backgroundSize: '100% 25%',
-                                }}
-                            >
-
-                                <div className="absolute inset-0 flex items-end justify-around px-3">
-
-                                    {monthlyData.map((month) => {
-                                        const totalHeight =
-                                            maxMonthlyFine > 0
-                                                ? (month.total / maxMonthlyFine) * 100
-                                                : 0;
-
-                                        const paidHeight =
-                                            maxMonthlyFine > 0
-                                                ? (month.paid / maxMonthlyFine) * 100
-                                                : 0;
-
-                                        return (
-                                            <div
-                                                key={month.key}
-                                                className="flex h-full flex-1 items-end justify-center gap-2 px-2"
-                                            >
-
-                                                {/* Total Fine Bar */}
-                                                <div
-                                                    title={`Total Fine: ${formatTaka(month.total)}`}
-                                                    className="w-5 max-w-[35%] rounded-t-md bg-emerald-800 transition-all duration-500 hover:bg-emerald-600 sm:w-8"
-                                                    style={{
-                                                        height: `${totalHeight}%`,
-                                                        minHeight:
-                                                            month.total > 0 ? '3px' : '0px',
-                                                    }}
-                                                />
-
-                                                {/* Paid Amount Bar */}
-                                                <div
-                                                    title={`Paid Amount: ${formatTaka(month.paid)}`}
-                                                    className="w-5 max-w-[35%] rounded-t-md bg-amber-500 transition-all duration-500 hover:bg-amber-400 sm:w-8"
-                                                    style={{
-                                                        height: `${paidHeight}%`,
-                                                        minHeight:
-                                                            month.paid > 0 ? '3px' : '0px',
-                                                    }}
-                                                />
-
-                                            </div>
-                                        );
-                                    })}
-
-                                </div>
-
-                            </div>
-
-                            {/* Month Labels */}
-                            <div className="flex justify-around pl-3 pt-3">
-
-                                {monthlyData.map((month) => (
-                                    <div
-                                        key={month.key}
-                                        className="flex-1 text-center text-xs font-medium text-stone-500"
-                                    >
-                                        {month.label}
+                                        <div
+                                            title={`Paid Amount: ${formatTaka(month.paid)}`}
+                                            className="w-5 max-w-[40%] rounded-t-md bg-amber-500 transition-all sm:w-8"
+                                            style={{
+                                                height: `${paidHeight}%`,
+                                                minHeight: month.paid > 0 ? '3px' : '0px',
+                                            }}
+                                        />
                                     </div>
-                                ))}
 
-                            </div>
-
-                        </div>
+                                    <p className="pt-3 text-xs font-medium text-stone-500">
+                                        {month.label}
+                                    </p>
+                                </div>
+                            );
+                        })}
                     </div>
+                </div>
 
-                    {/* Graph Footer */}
-                    <div className="mt-6 border-t border-stone-100 pt-4">
-
-                        <p className="text-xs text-stone-500">
-                            Showing monthly data for the last 6 months.
-                            All figures are calculated directly from
-                            Firestore records.
-                        </p>
-
-                    </div>
-
+                <div className="border-t border-stone-100 px-5 py-3">
+                    <p className="text-xs text-stone-400">
+                        Monthly figures are grouped by penalty entry date.
+                    </p>
                 </div>
 
             </section>
-
         </div>
     );
 }
