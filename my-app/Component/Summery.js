@@ -25,6 +25,7 @@ export default function MemberSummary() {
     const [paymentType, setPaymentType] = useState('partial');
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentDate, setPaymentDate] = useState(getTodayDate());
+    const [selectedMonths, setSelectedMonths] = useState([]);
     const [isPaying, setIsPaying] = useState(false);
     const [paymentError, setPaymentError] = useState('');
 
@@ -230,12 +231,55 @@ export default function MemberSummary() {
         );
     }
 
+    // Get monthly outstanding dues for a member
+    const memberMonthlyDues = useMemo(() => {
+        if (!selectedMember) return [];
+
+        const monthlySummary = {};
+
+        entries.forEach((entry) => {
+            if (entry.member !== selectedMember.name) return;
+            if (!isValidDate(entry.date)) return;
+            if (entry.dueAmount <= 0) return;
+
+            const month = entry.date.slice(0, 7);
+
+            if (!monthlySummary[month]) {
+                monthlySummary[month] = {
+                    month,
+                    dueAmount: 0,
+                    entryCount: 0,
+                };
+            }
+
+            monthlySummary[month].dueAmount += entry.dueAmount;
+            monthlySummary[month].entryCount += 1;
+        });
+
+        return Object.values(monthlySummary)
+            .map((item) => ({
+                ...item,
+                dueAmount: toMoney(item.dueAmount),
+            }))
+            .sort((a, b) => a.month.localeCompare(b.month));
+    }, [entries, selectedMember]);
+
+    // Calculate selected months total
+    const selectedMonthsTotal = useMemo(() => {
+        return toMoney(
+            memberMonthlyDues
+                .filter((item) => selectedMonths.includes(item.month))
+                .reduce((total, item) => total + item.dueAmount, 0)
+        );
+    }, [memberMonthlyDues, selectedMonths]);
+
     // Open payment modal
     function openPaymentModal(member) {
         setSelectedMember(member);
         setPaymentType('partial');
         setPaymentAmount('');
         setPaymentDate(getTodayDate());
+        setSelectedMonths([]);
         setPaymentError('');
         setIsPaymentOpen(true);
     }
@@ -246,6 +290,7 @@ export default function MemberSummary() {
 
         setIsPaymentOpen(false);
         setSelectedMember(null);
+        setSelectedMonths([]);
         setPaymentError('');
     }
 
@@ -253,6 +298,24 @@ export default function MemberSummary() {
     function handlePaymentTypeChange(type) {
         setPaymentType(type);
         setPaymentAmount('');
+        setSelectedMonths([]);
+        setPaymentError('');
+    }
+
+    // Select or deselect a month
+    function handleMonthSelection(month, checked) {
+        setSelectedMonths((previousMonths) => {
+            if (checked) {
+                return previousMonths.includes(month)
+                    ? previousMonths
+                    : [...previousMonths, month];
+            }
+
+            return previousMonths.filter(
+                (selectedMonth) => selectedMonth !== month
+            );
+        });
+
         setPaymentError('');
     }
 
@@ -269,11 +332,14 @@ export default function MemberSummary() {
 
         const enteredAmount = toMoney(paymentAmount);
 
-        if (paymentType === 'partial') {
-            if (enteredAmount <= 0) {
-                setPaymentError('Enter a valid payment amount.');
-                return;
-            }
+        if (paymentType === 'partial' && enteredAmount <= 0) {
+            setPaymentError('Enter a valid payment amount.');
+            return;
+        }
+
+        if (paymentType === 'monthly' && selectedMonths.length === 0) {
+            setPaymentError('Please select at least one month.');
+            return;
         }
 
         setIsPaying(true);
@@ -291,6 +357,7 @@ export default function MemberSummary() {
             const paymentRef = doc(collection(db, 'memberPayments'));
 
             await runTransaction(db, async (transaction) => {
+                // Read all member entries first
                 const snapshots = await Promise.all(
                     memberEntries.map((entry) =>
                         transaction.get(
@@ -330,8 +397,21 @@ export default function MemberSummary() {
                         (entry) => entry && entry.dueAmount > 0
                     );
 
+                // Select eligible entries based on payment type
+                let eligibleEntries = freshEntries;
+
+                if (paymentType === 'monthly') {
+                    eligibleEntries = freshEntries.filter((entry) => {
+                        if (!isValidDate(entry.date)) return false;
+
+                        const entryMonth = entry.date.slice(0, 7);
+
+                        return selectedMonths.includes(entryMonth);
+                    });
+                }
+
                 // Oldest penalty first
-                freshEntries.sort((a, b) => {
+                eligibleEntries.sort((a, b) => {
                     const dateCompare = a.date.localeCompare(b.date);
 
                     if (dateCompare !== 0) return dateCompare;
@@ -340,18 +420,22 @@ export default function MemberSummary() {
                 });
 
                 const currentTotalDue = toMoney(
-                    freshEntries.reduce(
+                    eligibleEntries.reduce(
                         (total, entry) => total + entry.dueAmount,
                         0
                     )
                 );
 
                 if (currentTotalDue <= 0) {
-                    throw new Error('This member has no outstanding dues.');
+                    throw new Error(
+                        paymentType === 'monthly'
+                            ? 'The selected months have no outstanding dues.'
+                            : 'This member has no outstanding dues.'
+                    );
                 }
 
                 const finalPaymentAmount =
-                    paymentType === 'full'
+                    paymentType === 'full' || paymentType === 'monthly'
                         ? currentTotalDue
                         : enteredAmount;
 
@@ -369,8 +453,8 @@ export default function MemberSummary() {
 
                 const allocations = [];
 
-                // Allocate payment from oldest entry to newest
-                for (const entry of freshEntries) {
+                // Allocate payment to eligible entries
+                for (const entry of eligibleEntries) {
                     if (remainingAmount <= 0) break;
 
                     const allocatedAmount = toMoney(
@@ -419,10 +503,16 @@ export default function MemberSummary() {
                     );
                 }
 
+                // Save payment history
                 transaction.set(paymentRef, {
                     member: selectedMember.name,
+                    paymentType,
                     amount: finalPaymentAmount,
                     paymentDate,
+                    selectedMonths:
+                        paymentType === 'monthly'
+                            ? [...selectedMonths].sort()
+                            : [],
                     allocations,
                     createdAt: serverTimestamp(),
                 });
@@ -431,6 +521,7 @@ export default function MemberSummary() {
             setIsPaymentOpen(false);
             setSelectedMember(null);
             setPaymentAmount('');
+            setSelectedMonths([]);
             setPaymentError('');
         } catch (paymentException) {
             console.error('Payment error:', paymentException);
@@ -651,8 +742,8 @@ export default function MemberSummary() {
 
             {/* Payment Modal */}
             {isPaymentOpen && selectedMember && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+                    <div className="my-auto w-full max-w-md rounded-xl bg-white shadow-xl">
 
                         <div className="flex items-center justify-between border-b border-stone-200 p-5">
                             <div>
@@ -677,6 +768,7 @@ export default function MemberSummary() {
 
                         <form onSubmit={handlePaymentSubmit} className="space-y-5 p-5">
 
+                            {/* Total Outstanding */}
                             <div className="rounded-lg bg-amber-50 p-4">
                                 <p className="text-sm text-amber-700">
                                     Total Outstanding Due
@@ -695,18 +787,18 @@ export default function MemberSummary() {
                                     Payment Type
                                 </label>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-3 gap-2">
                                     <button
                                         type="button"
                                         onClick={() =>
                                             handlePaymentTypeChange('partial')
                                         }
-                                        className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${paymentType === 'partial'
+                                        className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${paymentType === 'partial'
                                             ? 'border-emerald-800 bg-emerald-50 text-emerald-900'
                                             : 'border-stone-300 text-stone-600 hover:bg-stone-50'
                                             }`}
                                     >
-                                        Partial Payment
+                                        Partial
                                     </button>
 
                                     <button
@@ -714,50 +806,150 @@ export default function MemberSummary() {
                                         onClick={() =>
                                             handlePaymentTypeChange('full')
                                         }
-                                        className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${paymentType === 'full'
+                                        className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${paymentType === 'full'
                                             ? 'border-emerald-800 bg-emerald-50 text-emerald-900'
                                             : 'border-stone-300 text-stone-600 hover:bg-stone-50'
                                             }`}
                                     >
-                                        Full Payment
+                                        Full
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handlePaymentTypeChange('monthly')
+                                        }
+                                        className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${paymentType === 'monthly'
+                                            ? 'border-emerald-800 bg-emerald-50 text-emerald-900'
+                                            : 'border-stone-300 text-stone-600 hover:bg-stone-50'
+                                            }`}
+                                    >
+                                        Monthly
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Amount */}
-                            <div>
-                                <label
-                                    htmlFor="payment-amount"
-                                    className="mb-2 block text-sm font-medium text-stone-700"
-                                >
-                                    Payment Amount
-                                </label>
+                            {/* Monthly Selection */}
+                            {paymentType === 'monthly' && (
+                                <div>
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <label className="text-sm font-medium text-stone-700">
+                                            Select Months to Pay
+                                        </label>
 
-                                <input
-                                    id="payment-amount"
-                                    type="number"
-                                    min="0.01"
-                                    step="0.01"
-                                    value={
-                                        paymentType === 'full'
-                                            ? getMemberAllTimeDue(selectedMember.name)
-                                            : paymentAmount
-                                    }
-                                    onChange={(event) =>
-                                        setPaymentAmount(event.target.value)
-                                    }
-                                    disabled={paymentType === 'full'}
-                                    placeholder="Enter payment amount"
-                                    required
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 disabled:bg-stone-100"
-                                />
+                                        <span className="text-xs text-stone-500">
+                                            {selectedMonths.length} selected
+                                        </span>
+                                    </div>
 
-                                {paymentType === 'full' && (
-                                    <p className="mt-1 text-xs text-stone-500">
-                                        Full outstanding amount will be paid.
+                                    <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-stone-200 p-3">
+                                        {memberMonthlyDues.length > 0 ? (
+                                            memberMonthlyDues.map((item) => (
+                                                <label
+                                                    key={item.month}
+                                                    className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2 transition hover:bg-emerald-50"
+                                                >
+                                                    <div className="flex min-w-0 items-center gap-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedMonths.includes(item.month)}
+                                                            onChange={(event) =>
+                                                                handleMonthSelection(
+                                                                    item.month,
+                                                                    event.target.checked
+                                                                )
+                                                            }
+                                                            disabled={isPaying}
+                                                            className="h-4 w-4 rounded border-stone-300 accent-emerald-800"
+                                                        />
+
+                                                        <div>
+                                                            <p className="text-sm font-medium text-stone-800">
+                                                                {formatMonth(item.month)}
+                                                            </p>
+
+                                                            <p className="text-xs text-stone-500">
+                                                                {item.entryCount} penalty {item.entryCount === 1 ? 'entry' : 'entries'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <span className="shrink-0 text-sm font-semibold tabular-nums text-amber-700">
+                                                        {formatTaka(item.dueAmount)}
+                                                    </span>
+                                                </label>
+                                            ))
+                                        ) : (
+                                            <p className="py-5 text-center text-sm text-stone-500">
+                                                No monthly dues available.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-3 rounded-lg bg-emerald-50 p-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-emerald-800">
+                                                Selected Months
+                                            </span>
+
+                                            <span className="text-sm font-semibold text-emerald-900">
+                                                {selectedMonths.length}
+                                            </span>
+                                        </div>
+
+                                        <div className="mt-2 flex items-center justify-between">
+                                            <span className="text-sm font-medium text-emerald-800">
+                                                Total Payment
+                                            </span>
+
+                                            <span className="text-xl font-bold text-emerald-900">
+                                                {formatTaka(selectedMonthsTotal)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <p className="mt-2 text-xs leading-5 text-stone-500">
+                                        Select the months you want to pay. Only outstanding dues from selected months will be paid.
                                     </p>
-                                )}
-                            </div>
+                                </div>
+                            )}
+
+                            {/* Payment Amount */}
+                            {paymentType !== 'monthly' && (
+                                <div>
+                                    <label
+                                        htmlFor="payment-amount"
+                                        className="mb-2 block text-sm font-medium text-stone-700"
+                                    >
+                                        Payment Amount
+                                    </label>
+
+                                    <input
+                                        id="payment-amount"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        value={
+                                            paymentType === 'full'
+                                                ? getMemberAllTimeDue(selectedMember.name)
+                                                : paymentAmount
+                                        }
+                                        onChange={(event) =>
+                                            setPaymentAmount(event.target.value)
+                                        }
+                                        disabled={paymentType === 'full'}
+                                        placeholder="Enter payment amount"
+                                        required={paymentType === 'partial'}
+                                        className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm text-stone-700 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 disabled:bg-stone-100"
+                                    />
+
+                                    {paymentType === 'full' && (
+                                        <p className="mt-1 text-xs text-stone-500">
+                                            Full outstanding amount will be paid.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Payment Date */}
                             <div>
@@ -776,12 +968,15 @@ export default function MemberSummary() {
                                         setPaymentDate(event.target.value)
                                     }
                                     required
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
+                                    className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm text-stone-700 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
                                 />
                             </div>
 
+                            {/* Payment Information */}
                             <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-800">
-                                Payment will automatically be allocated to the oldest unpaid penalty entries first, across all months.
+                                {paymentType === 'monthly'
+                                    ? 'Only the selected months will be paid. Other months will remain unchanged.'
+                                    : 'Payment will automatically be allocated to the oldest unpaid penalty entries first, across all months.'}
                             </div>
 
                             {paymentError && (
@@ -790,6 +985,7 @@ export default function MemberSummary() {
                                 </div>
                             )}
 
+                            {/* Actions */}
                             <div className="flex gap-3 pt-1">
                                 <button
                                     type="button"
@@ -802,7 +998,12 @@ export default function MemberSummary() {
 
                                 <button
                                     type="submit"
-                                    disabled={isPaying}
+                                    disabled={
+                                        isPaying ||
+                                        (paymentType === 'monthly' &&
+                                            (selectedMonths.length === 0 ||
+                                                selectedMonthsTotal <= 0))
+                                    }
                                     className="flex-1 rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isPaying ? 'Processing...' : 'Confirm Payment'}
@@ -815,3 +1016,4 @@ export default function MemberSummary() {
         </main>
     );
 }
+
