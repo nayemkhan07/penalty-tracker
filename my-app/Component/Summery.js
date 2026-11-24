@@ -1,7 +1,6 @@
 // 'use client';
 
 // import { useEffect, useMemo, useState } from 'react';
-
 // import {
 //     collection,
 //     onSnapshot,
@@ -9,12 +8,12 @@
 //     runTransaction,
 //     serverTimestamp,
 // } from 'firebase/firestore';
-
 // import { db } from '@/Lib/firebase';
 
 // export default function MemberSummary() {
 //     const [entries, setEntries] = useState([]);
 //     const [selectedMonth, setSelectedMonth] = useState('all');
+//     const [searchTerm, setSearchTerm] = useState('');
 
 //     const [isLoaded, setIsLoaded] = useState(false);
 //     const [error, setError] = useState('');
@@ -38,7 +37,6 @@
 //             (snapshot) => {
 //                 const firebaseEntries = snapshot.docs.map((document) => {
 //                     const data = document.data();
-
 //                     const amount = toMoney(data.amount);
 
 //                     const paidAmount =
@@ -188,38 +186,49 @@
 //             .sort((a, b) => b.totalFine - a.totalFine);
 //     }, [filteredEntries]);
 
+//     // Filter members by search term
+//     const searchedMemberSummary = useMemo(() => {
+//         const searchValue = searchTerm.trim().toLowerCase();
+
+//         if (!searchValue) return memberSummary;
+
+//         return memberSummary.filter((member) =>
+//             member.name.toLowerCase().includes(searchValue)
+//         );
+//     }, [memberSummary, searchTerm]);
+
 //     // Calculate grand totals
 //     const totalFine = useMemo(
 //         () =>
 //             toMoney(
-//                 memberSummary.reduce(
+//                 searchedMemberSummary.reduce(
 //                     (total, member) => total + member.totalFine,
 //                     0
 //                 )
 //             ),
-//         [memberSummary]
+//         [searchedMemberSummary]
 //     );
 
 //     const totalPaid = useMemo(
 //         () =>
 //             toMoney(
-//                 memberSummary.reduce(
+//                 searchedMemberSummary.reduce(
 //                     (total, member) => total + member.paidFine,
 //                     0
 //                 )
 //             ),
-//         [memberSummary]
+//         [searchedMemberSummary]
 //     );
 
 //     const totalDue = useMemo(
 //         () =>
 //             toMoney(
-//                 memberSummary.reduce(
+//                 searchedMemberSummary.reduce(
 //                     (total, member) => total + member.dueFine,
 //                     0
 //                 )
 //             ),
-//         [memberSummary]
+//         [searchedMemberSummary]
 //     );
 
 //     // Get all-time outstanding amount for a member
@@ -450,7 +459,6 @@
 //                 }
 
 //                 let remainingAmount = finalPaymentAmount;
-
 //                 const allocations = [];
 
 //                 // Allocate payment to eligible entries
@@ -577,7 +585,6 @@
 //         <main className="min-h-screen bg-stone-50 p-4 sm:p-6">
 //             <div className="mx-auto max-w-7xl">
 //                 <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-
 //                     {/* Header and Month Filter */}
 //                     <div className="flex flex-col gap-4 border-b border-stone-200 p-5 sm:flex-row sm:items-center sm:justify-between">
 //                         <div>
@@ -615,6 +622,25 @@
 //                                 ))}
 //                             </select>
 //                         </div>
+
+//                         {/* Member Search */}
+//                         <div className="sm:w-64">
+//                             <label
+//                                 htmlFor="member-search"
+//                                 className="mb-2 block text-sm font-medium text-stone-700"
+//                             >
+//                                 Search Member
+//                             </label>
+
+//                             <input
+//                                 id="member-search"
+//                                 type="text"
+//                                 value={searchTerm}
+//                                 onChange={(event) => setSearchTerm(event.target.value)}
+//                                 placeholder="Search by member name..."
+//                                 className="w-full rounded-lg border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
+//                             />
+//                         </div>
 //                     </div>
 
 //                     {/* Member Summary Table */}
@@ -645,8 +671,8 @@
 //                             </thead>
 
 //                             <tbody>
-//                                 {memberSummary.length > 0 ? (
-//                                     memberSummary.map((member, index) => {
+//                                 {searchedMemberSummary.length > 0 ? (
+//                                     searchedMemberSummary.map((member, index) => {
 //                                         const allTimeDue =
 //                                             getMemberAllTimeDue(member.name);
 
@@ -700,7 +726,9 @@
 //                                             colSpan={5}
 //                                             className="px-5 py-12 text-center text-stone-500"
 //                                         >
-//                                             No penalty entries found.
+//                                             {searchTerm.trim()
+//                                                 ? 'No matching member found.'
+//                                                 : 'No penalty entries found.'}
 //                                         </td>
 //                                     </tr>
 //                                 )}
@@ -732,7 +760,7 @@
 
 //                     {/* Footer */}
 //                     <div className="border-t border-stone-200 px-5 py-3 text-xs text-stone-500">
-//                         Showing {memberSummary.length} members
+//                         Showing {searchedMemberSummary.length} members
 
 //                         {selectedMonth !== 'all' &&
 //                             ` • ${formatMonth(selectedMonth)} only`}
@@ -744,7 +772,6 @@
 //             {isPaymentOpen && selectedMember && (
 //                 <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
 //                     <div className="my-auto w-full max-w-md rounded-xl bg-white shadow-xl">
-
 //                         <div className="flex items-center justify-between border-b border-stone-200 p-5">
 //                             <div>
 //                                 <h2 className="text-lg font-bold text-stone-900">
@@ -767,7 +794,6 @@
 //                         </div>
 
 //                         <form onSubmit={handlePaymentSubmit} className="space-y-5 p-5">
-
 //                             {/* Total Outstanding */}
 //                             <div className="rounded-lg bg-amber-50 p-4">
 //                                 <p className="text-sm text-amber-700">
@@ -1018,7 +1044,6 @@
 // }
 
 
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -1029,13 +1054,17 @@ import {
     runTransaction,
     serverTimestamp,
 } from 'firebase/firestore';
+
 import { db } from '@/Lib/firebase';
+import { useAuth } from '@/Context/AuthContext';
 
 export default function MemberSummary() {
+    const { user, loading: authLoading } = useAuth();
+    const canWrite = !authLoading && !!user;
+
     const [entries, setEntries] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-
     const [isLoaded, setIsLoaded] = useState(false);
     const [error, setError] = useState('');
 
@@ -1048,6 +1077,15 @@ export default function MemberSummary() {
     const [selectedMonths, setSelectedMonths] = useState([]);
     const [isPaying, setIsPaying] = useState(false);
     const [paymentError, setPaymentError] = useState('');
+
+    // Close payment modal immediately when user logs out
+    useEffect(() => {
+        if (!canWrite) {
+            setIsPaymentOpen(false);
+            setSelectedMember(null);
+            setSelectedMonths([]);
+        }
+    }, [canWrite]);
 
     // Realtime Firestore data
     useEffect(() => {
@@ -1101,7 +1139,6 @@ export default function MemberSummary() {
         if (typeof date !== 'string') return false;
 
         const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-
         if (!datePattern.test(date)) return false;
 
         const [year, month, day] = date.split('-').map(Number);
@@ -1119,7 +1156,6 @@ export default function MemberSummary() {
     // Get today's local date
     function getTodayDate() {
         const today = new Date();
-
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
@@ -1180,7 +1216,6 @@ export default function MemberSummary() {
 
         filteredEntries.forEach((entry) => {
             const name = entry.member;
-
             if (!name) return;
 
             if (!summary[name]) {
@@ -1305,6 +1340,8 @@ export default function MemberSummary() {
 
     // Open payment modal
     function openPaymentModal(member) {
+        if (!canWrite) return;
+
         setSelectedMember(member);
         setPaymentType('partial');
         setPaymentAmount('');
@@ -1353,6 +1390,7 @@ export default function MemberSummary() {
     async function handlePaymentSubmit(event) {
         event.preventDefault();
 
+        if (!canWrite || isPaying) return;
         if (!selectedMember) return;
 
         if (!isValidDate(paymentDate)) {
@@ -1423,9 +1461,7 @@ export default function MemberSummary() {
                             dueAmount,
                         };
                     })
-                    .filter(
-                        (entry) => entry && entry.dueAmount > 0
-                    );
+                    .filter((entry) => entry && entry.dueAmount > 0);
 
                 // Select eligible entries based on payment type
                 let eligibleEntries = freshEntries;
@@ -1435,7 +1471,6 @@ export default function MemberSummary() {
                         if (!isValidDate(entry.date)) return false;
 
                         const entryMonth = entry.date.slice(0, 7);
-
                         return selectedMonths.includes(entryMonth);
                     });
                 }
@@ -1612,7 +1647,6 @@ export default function MemberSummary() {
                             <h1 className="text-xl font-bold text-stone-900">
                                 Member Summary
                             </h1>
-
                             <p className="mt-1 text-sm text-stone-500">
                                 Total fines, paid amounts and outstanding payments
                             </p>
@@ -1657,7 +1691,9 @@ export default function MemberSummary() {
                                 id="member-search"
                                 type="text"
                                 value={searchTerm}
-                                onChange={(event) => setSearchTerm(event.target.value)}
+                                onChange={(event) =>
+                                    setSearchTerm(event.target.value)
+                                }
                                 placeholder="Search by member name..."
                                 className="w-full rounded-lg border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
                             />
@@ -1672,19 +1708,15 @@ export default function MemberSummary() {
                                     <th className="px-5 py-4 text-left font-semibold">
                                         Member Name
                                     </th>
-
                                     <th className="px-5 py-4 text-right font-semibold">
                                         Total Fine
                                     </th>
-
                                     <th className="px-5 py-4 text-right font-semibold">
                                         Paid Fine
                                     </th>
-
                                     <th className="px-5 py-4 text-right font-semibold">
                                         Due Fine
                                     </th>
-
                                     <th className="px-5 py-4 text-center font-semibold">
                                         Action
                                     </th>
@@ -1723,15 +1755,21 @@ export default function MemberSummary() {
 
                                                 <td className="px-5 py-3.5 text-center">
                                                     {allTimeDue > 0 ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                openPaymentModal(member)
-                                                            }
-                                                            className="rounded-lg bg-emerald-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800"
-                                                        >
-                                                            Payment
-                                                        </button>
+                                                        canWrite ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    openPaymentModal(member)
+                                                                }
+                                                                className="rounded-lg bg-emerald-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800"
+                                                            >
+                                                                Payment
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-xs text-stone-400">
+                                                                Login to Pay
+                                                            </span>
+                                                        )
                                                     ) : (
                                                         <span className="font-medium text-emerald-700">
                                                             Fully Paid
@@ -1760,19 +1798,15 @@ export default function MemberSummary() {
                                     <td className="px-5 py-4">
                                         Grand Total
                                     </td>
-
                                     <td className="px-5 py-4 text-right tabular-nums">
                                         {formatTaka(totalFine)}
                                     </td>
-
                                     <td className="px-5 py-4 text-right tabular-nums text-emerald-800">
                                         {formatTaka(totalPaid)}
                                     </td>
-
                                     <td className="px-5 py-4 text-right tabular-nums text-amber-800">
                                         {formatTaka(totalDue)}
                                     </td>
-
                                     <td className="px-5 py-4"></td>
                                 </tr>
                             </tfoot>
@@ -1782,7 +1816,6 @@ export default function MemberSummary() {
                     {/* Footer */}
                     <div className="border-t border-stone-200 px-5 py-3 text-xs text-stone-500">
                         Showing {searchedMemberSummary.length} members
-
                         {selectedMonth !== 'all' &&
                             ` • ${formatMonth(selectedMonth)} only`}
                     </div>
@@ -1790,7 +1823,7 @@ export default function MemberSummary() {
             </div>
 
             {/* Payment Modal */}
-            {isPaymentOpen && selectedMember && (
+            {canWrite && isPaymentOpen && selectedMember && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
                     <div className="my-auto w-full max-w-md rounded-xl bg-white shadow-xl">
                         <div className="flex items-center justify-between border-b border-stone-200 p-5">
@@ -1798,7 +1831,6 @@ export default function MemberSummary() {
                                 <h2 className="text-lg font-bold text-stone-900">
                                     Member Payment
                                 </h2>
-
                                 <p className="mt-1 text-sm text-stone-500">
                                     {selectedMember.name}
                                 </p>
@@ -1814,13 +1846,15 @@ export default function MemberSummary() {
                             </button>
                         </div>
 
-                        <form onSubmit={handlePaymentSubmit} className="space-y-5 p-5">
+                        <form
+                            onSubmit={handlePaymentSubmit}
+                            className="space-y-5 p-5"
+                        >
                             {/* Total Outstanding */}
                             <div className="rounded-lg bg-amber-50 p-4">
                                 <p className="text-sm text-amber-700">
                                     Total Outstanding Due
                                 </p>
-
                                 <p className="mt-1 text-2xl font-bold text-amber-800">
                                     {formatTaka(
                                         getMemberAllTimeDue(selectedMember.name)
@@ -1883,7 +1917,6 @@ export default function MemberSummary() {
                                         <label className="text-sm font-medium text-stone-700">
                                             Select Months to Pay
                                         </label>
-
                                         <span className="text-xs text-stone-500">
                                             {selectedMonths.length} selected
                                         </span>
@@ -1899,7 +1932,9 @@ export default function MemberSummary() {
                                                     <div className="flex min-w-0 items-center gap-3">
                                                         <input
                                                             type="checkbox"
-                                                            checked={selectedMonths.includes(item.month)}
+                                                            checked={selectedMonths.includes(
+                                                                item.month
+                                                            )}
                                                             onChange={(event) =>
                                                                 handleMonthSelection(
                                                                     item.month,
@@ -1914,9 +1949,11 @@ export default function MemberSummary() {
                                                             <p className="text-sm font-medium text-stone-800">
                                                                 {formatMonth(item.month)}
                                                             </p>
-
                                                             <p className="text-xs text-stone-500">
-                                                                {item.entryCount} penalty {item.entryCount === 1 ? 'entry' : 'entries'}
+                                                                {item.entryCount} penalty{' '}
+                                                                {item.entryCount === 1
+                                                                    ? 'entry'
+                                                                    : 'entries'}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1938,7 +1975,6 @@ export default function MemberSummary() {
                                             <span className="text-sm font-medium text-emerald-800">
                                                 Selected Months
                                             </span>
-
                                             <span className="text-sm font-semibold text-emerald-900">
                                                 {selectedMonths.length}
                                             </span>
@@ -1948,7 +1984,6 @@ export default function MemberSummary() {
                                             <span className="text-sm font-medium text-emerald-800">
                                                 Total Payment
                                             </span>
-
                                             <span className="text-xl font-bold text-emerald-900">
                                                 {formatTaka(selectedMonthsTotal)}
                                             </span>
@@ -1978,7 +2013,9 @@ export default function MemberSummary() {
                                         step="0.01"
                                         value={
                                             paymentType === 'full'
-                                                ? getMemberAllTimeDue(selectedMember.name)
+                                                ? getMemberAllTimeDue(
+                                                    selectedMember.name
+                                                )
                                                 : paymentAmount
                                         }
                                         onChange={(event) =>
@@ -2053,7 +2090,9 @@ export default function MemberSummary() {
                                     }
                                     className="flex-1 rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    {isPaying ? 'Processing...' : 'Confirm Payment'}
+                                    {isPaying
+                                        ? 'Processing...'
+                                        : 'Confirm Payment'}
                                 </button>
                             </div>
                         </form>

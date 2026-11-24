@@ -48,7 +48,6 @@
 
 //     const amount = Number(data.amount || 0);
 
-//     // Old entries may not have paidAmount.
 //     const paidAmount =
 //         data.paidAmount !== undefined
 //             ? Number(data.paidAmount || 0)
@@ -84,6 +83,8 @@
 // export default function PenaltyEntries() {
 //     const [entries, setEntries] = useState([]);
 //     const [form, setForm] = useState({ ...emptyForm });
+
+//     const [searchTerm, setSearchTerm] = useState('');
 
 //     const [isModalOpen, setIsModalOpen] = useState(false);
 //     const [editingId, setEditingId] = useState(null);
@@ -126,6 +127,13 @@
 
 //         return () => unsubscribe();
 //     }, []);
+
+//     // Filter entries by member name.
+//     const filteredEntries = entries.filter((entry) =>
+//         String(entry.member || '')
+//             .toLowerCase()
+//             .includes(searchTerm.trim().toLowerCase())
+//     );
 
 //     const amount = Number(form.goalCount || 0) * penaltyRate;
 
@@ -325,13 +333,30 @@
 //                 {/* Entries Table */}
 //                 <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
 //                     <div className="border-b border-stone-200 p-5">
-//                         <h2 className="text-lg font-semibold">
-//                             All Entries
-//                         </h2>
+//                         <div className="flex flex-wrap items-center justify-between gap-4">
+//                             <div>
+//                                 <h2 className="text-lg font-semibold">
+//                                     All Entries
+//                                 </h2>
 
-//                         <p className="mt-1 text-xs text-slate-500">
-//                             {entries.length} total entries
-//                         </p>
+//                                 <p className="mt-1 text-xs text-slate-500">
+//                                     Showing {filteredEntries.length} of {entries.length} entries
+//                                 </p>
+//                             </div>
+
+//                             {/* Member Search */}
+//                             <div className="w-full sm:w-72">
+//                                 <input
+//                                     type="text"
+//                                     value={searchTerm}
+//                                     onChange={(event) =>
+//                                         setSearchTerm(event.target.value)
+//                                     }
+//                                     placeholder="Search member name..."
+//                                     className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-green-800 focus:ring-2 focus:ring-green-800/10"
+//                                 />
+//                             </div>
+//                         </div>
 //                     </div>
 
 //                     <div className="overflow-x-auto">
@@ -351,7 +376,7 @@
 //                             </thead>
 
 //                             <tbody>
-//                                 {entries.map((entry, index) => (
+//                                 {filteredEntries.map((entry, index) => (
 //                                     <tr
 //                                         key={entry.id}
 //                                         className="border-t border-stone-200 hover:bg-stone-50"
@@ -409,18 +434,22 @@
 //                                     </tr>
 //                                 ))}
 
-//                                 {entries.length === 0 && (
+//                                 {filteredEntries.length === 0 && (
 //                                     <tr>
 //                                         <td
 //                                             colSpan={9}
 //                                             className="px-6 py-16 text-center"
 //                                         >
 //                                             <p className="font-medium text-slate-700">
-//                                                 No entries yet
+//                                                 {searchTerm.trim()
+//                                                     ? 'No matching member found.'
+//                                                     : 'No entries yet.'}
 //                                             </p>
 
 //                                             <p className="mt-1 text-sm text-slate-500">
-//                                                 Click Add Entry to create your first record.
+//                                                 {searchTerm.trim()
+//                                                     ? 'Try searching with another member name.'
+//                                                     : 'Click Add Entry to create your first record.'}
 //                                             </p>
 //                                         </td>
 //                                     </tr>
@@ -629,8 +658,6 @@
 
 
 
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -643,6 +670,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/Lib/firebase';
+import { useAuth } from '@/Context/AuthContext';
 
 const members = [
     'Sabbir Alam',
@@ -728,6 +756,11 @@ export default function PenaltyEntries() {
     const [fetchError, setFetchError] = useState('');
     const [saveError, setSaveError] = useState('');
 
+    // Firebase Authentication
+    const { user, loading: authLoading } = useAuth();
+
+    const canWrite = !authLoading && !!user;
+
     // Real-time Firestore listener.
     useEffect(() => {
         const entriesRef = collection(db, 'penaltyEntries');
@@ -781,6 +814,8 @@ export default function PenaltyEntries() {
 
     // Open Add Entry modal.
     function openAddModal() {
+        if (!canWrite) return;
+
         setForm({ ...emptyForm });
         setEditingId(null);
         setSaveError('');
@@ -789,6 +824,8 @@ export default function PenaltyEntries() {
 
     // Open Edit Entry modal.
     function openEditModal(entry) {
+        if (!canWrite) return;
+
         setForm({
             date: entry.date || '',
             member: entry.member || '',
@@ -814,7 +851,7 @@ export default function PenaltyEntries() {
     async function handleSubmit(event) {
         event.preventDefault();
 
-        if (isSaving) return;
+        if (!canWrite || isSaving) return;
 
         const penaltyCount = Number(form.goalCount);
 
@@ -905,6 +942,7 @@ export default function PenaltyEntries() {
             setIsModalOpen(false);
             setForm({ ...emptyForm });
             setEditingId(null);
+
         } catch (error) {
             console.error('Firestore Save Error:', error);
 
@@ -944,13 +982,16 @@ export default function PenaltyEntries() {
                         </p>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={openAddModal}
-                        className="rounded-lg bg-green-950 px-5 py-3 font-medium text-white hover:bg-green-800"
-                    >
-                        + Add Entry
-                    </button>
+                    {/* Add Entry - Only for logged-in users */}
+                    {canWrite && (
+                        <button
+                            type="button"
+                            onClick={openAddModal}
+                            className="rounded-lg bg-green-950 px-5 py-3 font-medium text-white hover:bg-green-800"
+                        >
+                            + Add Entry
+                        </button>
+                    )}
                 </div>
 
                 {/* Firebase Read Error */}
@@ -1004,7 +1045,13 @@ export default function PenaltyEntries() {
                                     <th className="px-4 py-4">Amount</th>
                                     <th className="px-4 py-4">Status</th>
                                     <th className="px-4 py-4">Payment Date</th>
-                                    <th className="px-4 py-4">Action</th>
+
+                                    {/* Action Column - Only for logged-in users */}
+                                    {canWrite && (
+                                        <th className="px-4 py-4">
+                                            Action
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
 
@@ -1055,22 +1102,25 @@ export default function PenaltyEntries() {
                                             {entry.paymentDate || '—'}
                                         </td>
 
-                                        <td className="px-4 py-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => openEditModal(entry)}
-                                                className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700 hover:bg-blue-100"
-                                            >
-                                                Edit
-                                            </button>
-                                        </td>
+                                        {/* Edit Button - Only for logged-in users */}
+                                        {canWrite && (
+                                            <td className="px-4 py-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEditModal(entry)}
+                                                    className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700 hover:bg-blue-100"
+                                                >
+                                                    Edit
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
 
                                 {filteredEntries.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={9}
+                                            colSpan={canWrite ? 9 : 8}
                                             className="px-6 py-16 text-center"
                                         >
                                             <p className="font-medium text-slate-700">
@@ -1082,7 +1132,9 @@ export default function PenaltyEntries() {
                                             <p className="mt-1 text-sm text-slate-500">
                                                 {searchTerm.trim()
                                                     ? 'Try searching with another member name.'
-                                                    : 'Click Add Entry to create your first record.'}
+                                                    : canWrite
+                                                        ? 'Click Add Entry to create your first record.'
+                                                        : 'No penalty entries are available.'}
                                             </p>
                                         </td>
                                     </tr>
@@ -1093,8 +1145,8 @@ export default function PenaltyEntries() {
                 </div>
             </div>
 
-            {/* Add/Edit Modal */}
-            {isModalOpen && (
+            {/* Add/Edit Modal - Only for logged-in users */}
+            {isModalOpen && canWrite && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4"
                     onMouseDown={(event) => {
