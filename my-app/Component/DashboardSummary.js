@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/Lib/firebase';
 
@@ -81,61 +81,65 @@ export default function DashboardSummary() {
     );
 
     // Last 6 Months Data
-    const monthlyData = useMemo(() => {
-        const currentDate = new Date();
-        const months = [];
+  const [monthlyData, setMonthlyData] = useState([]);
 
-        for (let i = 5; i >= 0; i--) {
-            const date = new Date(
-                currentDate.getFullYear(),
-                currentDate.getMonth() - i,
-                1
-            );
+useEffect(() => {
+    const currentDate = new Date();
+    const months = [];
 
-            const year = date.getFullYear();
-            const monthNumber = String(date.getMonth() + 1).padStart(2, '0');
-            const key = `${year}-${monthNumber}`;
+    for (let i = 5; i >= 0; i--) {
+        const date = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth() - i,
+            1
+        );
 
-            months.push({
-                key,
-                label: date.toLocaleDateString('en-US', {
-                    month: 'short',
-                }),
-                total: 0,
-                paid: 0,
-            });
+        const year = date.getFullYear();
+        const monthNumber = String(date.getMonth() + 1).padStart(2, '0');
+        const key = `${year}-${monthNumber}`;
+
+        months.push({
+            key,
+            label: date.toLocaleDateString('en-US', {
+                month: 'short',
+            }),
+            total: 0,
+            paid: 0,
+        });
+    }
+
+    entries.forEach((entry) => {
+        if (
+            typeof entry.date !== 'string' ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)
+        ) {
+            return;
         }
 
-        entries.forEach((entry) => {
-            if (
-                typeof entry.date !== 'string' ||
-                !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)
-            ) {
-                return;
-            }
+        const monthKey = entry.date.slice(0, 7);
+        const currentMonth = months.find(
+            (month) => month.key === monthKey
+        );
 
-            const monthKey = entry.date.slice(0, 7);
-            const currentMonth = months.find(
-                (month) => month.key === monthKey
-            );
+        if (!currentMonth) return;
 
-            if (!currentMonth) return;
+        currentMonth.total += entry.amount;
+        currentMonth.paid += entry.paidAmount;
+    });
 
-            currentMonth.total += entry.amount;
-            currentMonth.paid += entry.paidAmount;
-        });
-
-        return months.map((month) => ({
+    setMonthlyData(
+        months.map((month) => ({
             ...month,
             total: toMoney(month.total),
             paid: toMoney(month.paid),
-        }));
-    }, [entries]);
-
-    const maxMonthlyFine = Math.max(
-        ...monthlyData.map((month) => month.total),
-        0
+        }))
     );
+}, [entries]);
+
+const maxMonthlyFine = Math.max(
+    ...monthlyData.map((month) => month.total),
+    0
+);
 
     // Summary Cards
     const summaryCards = [

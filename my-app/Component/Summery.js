@@ -1073,10 +1073,15 @@ export default function MemberSummary() {
     const [selectedMember, setSelectedMember] = useState(null);
     const [paymentType, setPaymentType] = useState('partial');
     const [paymentAmount, setPaymentAmount] = useState('');
-    const [paymentDate, setPaymentDate] = useState(getTodayDate());
+    const [paymentDate, setPaymentDate] = useState('');
+
+    useEffect(() => {
+        setPaymentDate(getTodayDate());
+    }, []);
     const [selectedMonths, setSelectedMonths] = useState([]);
     const [isPaying, setIsPaying] = useState(false);
     const [paymentError, setPaymentError] = useState('');
+
 
     // Close payment modal immediately when user logs out
     useEffect(() => {
@@ -1154,12 +1159,12 @@ export default function MemberSummary() {
     }
 
     // Get today's local date
+    // Get today's local date
     function getTodayDate() {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
-
         return `${year}-${month}-${day}`;
     }
 
