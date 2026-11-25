@@ -34,29 +34,29 @@ export default function Navbar({ onMenuClick }) {
     }
 
     return (
-        <header className="flex h-16 items-center justify-between border-b border-stone-200 bg-white px-4 md:px-6">
+        <header className="flex h-16 items-center justify-between border-b border-[#E5E5E7] bg-white px-5 md:px-7">
 
             <div className="flex items-center gap-4">
                 <button
                     onClick={onMenuClick}
-                    className="text-2xl text-stone-600 hover:text-stone-900 lg:hidden"
+                    className="text-xl text-[#626A78] transition hover:text-black lg:hidden"
                     aria-label="Open sidebar"
                 >
                     ☰
                 </button>
 
-                <h1 className="text-lg font-semibold text-stone-900">
+                <h1 className="text-base font-semibold tracking-tight text-[#171717]">
                     {pageTitle}
                 </h1>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center">
                 {!loading && (
                     user ? (
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="text-sm font-medium text-stone-600 transition hover:text-stone-950"
+                            className="text-sm font-medium text-[#626A78] transition hover:text-black"
                         >
                             Logout
                         </button>
@@ -64,7 +64,7 @@ export default function Navbar({ onMenuClick }) {
                         <button
                             type="button"
                             onClick={handleLogin}
-                            className="text-sm font-medium text-stone-600 transition hover:text-stone-950"
+                            className="text-sm font-medium text-[#626A78] transition hover:text-black"
                         >
                             Login
                         </button>

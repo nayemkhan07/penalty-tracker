@@ -597,86 +597,105 @@ export default function MemberSummary() {
     }
 
     return (
-        <main className="min-h-screen bg-stone-50 p-4 sm:p-6">
+        <main className="min-h-screen bg-white p-4 text-[#171717] sm:p-6">
             <div className="mx-auto max-w-7xl">
-                <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-                    {/* Header and Month Filter */}
-                    <div className="flex flex-col gap-4 border-b border-stone-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+
+                {/* Header and Filters */}
+                <section className="mb-6">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h1 className="text-xl font-bold text-stone-900">
+                            <h1 className="text-3xl font-bold tracking-tight text-[#171717]">
                                 Member Summary
                             </h1>
-                            <p className="mt-1 text-sm text-stone-500">
+                            <p className="mt-2 text-sm text-[#626A78]">
                                 Total fines, paid amounts and outstanding payments
                             </p>
                         </div>
 
-                        <div className="sm:w-64">
-                            <label
-                                htmlFor="month-filter"
-                                className="mb-2 block text-sm font-medium text-stone-700"
-                            >
-                                Filter Month
-                            </label>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {/* Month Filter */}
+                            <div className="sm:w-56">
+                                <label
+                                    htmlFor="month-filter"
+                                    className="mb-2 block text-xs font-medium text-[#626A78]"
+                                >
+                                    Filter Month
+                                </label>
 
-                            <select
-                                id="month-filter"
-                                value={selectedMonth}
-                                onChange={(event) =>
-                                    setSelectedMonth(event.target.value)
-                                }
-                                className="w-full rounded-lg border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
-                            >
-                                <option value="all">All Months</option>
+                                <select
+                                    id="month-filter"
+                                    value={selectedMonth}
+                                    onChange={(event) =>
+                                        setSelectedMonth(event.target.value)
+                                    }
+                                    className="w-full rounded-lg border border-[#D9DDE4] bg-white px-3 py-2.5 text-sm text-[#171717] outline-none focus:border-[#777D87]"
+                                >
+                                    <option value="all">All Months</option>
 
-                                {months.map((month) => (
-                                    <option key={month} value={month}>
-                                        {formatMonth(month)}
-                                    </option>
-                                ))}
-                            </select>
+                                    {months.map((month) => (
+                                        <option key={month} value={month}>
+                                            {formatMonth(month)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Member Search */}
+                            <div className="sm:w-64">
+                                <label
+                                    htmlFor="member-search"
+                                    className="mb-2 block text-xs font-medium text-[#626A78]"
+                                >
+                                    Search Member
+                                </label>
+
+                                <input
+                                    id="member-search"
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(event) =>
+                                        setSearchTerm(event.target.value)
+                                    }
+                                    placeholder="Search by member name..."
+                                    className="w-full rounded-lg border border-[#D9DDE4] bg-white px-3 py-2.5 text-sm text-[#171717] outline-none placeholder:text-[#9298A3] focus:border-[#777D87]"
+                                />
+                            </div>
                         </div>
+                    </div>
+                </section>
 
-                        {/* Member Search */}
-                        <div className="sm:w-64">
-                            <label
-                                htmlFor="member-search"
-                                className="mb-2 block text-sm font-medium text-stone-700"
-                            >
-                                Search Member
-                            </label>
+                {/* Member Summary Table */}
+                <section className="overflow-hidden bg-white">
 
-                            <input
-                                id="member-search"
-                                type="text"
-                                value={searchTerm}
-                                onChange={(event) =>
-                                    setSearchTerm(event.target.value)
-                                }
-                                placeholder="Search by member name..."
-                                className="w-full rounded-lg border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
-                            />
+                    <div className="mb-4 flex items-center justify-between">
+                        <div>
+                            <h2 className="text-sm font-semibold text-[#171717]">
+                                All Members
+                            </h2>
+                            <p className="mt-1 text-xs text-[#858B97]">
+                                Payment overview by member
+                            </p>
                         </div>
                     </div>
 
-                    {/* Member Summary Table */}
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[850px] border-collapse text-sm">
+
                             <thead>
-                                <tr className="bg-emerald-950 text-white">
-                                    <th className="px-5 py-4 text-left font-semibold">
+                                <tr className="bg-[#F3F4F6] text-[#626A78]">
+                                    <th className="px-5 py-4 text-left font-medium">
                                         Member Name
                                     </th>
-                                    <th className="px-5 py-4 text-right font-semibold">
+                                    <th className="px-5 py-4 text-right font-medium">
                                         Total Fine
                                     </th>
-                                    <th className="px-5 py-4 text-right font-semibold">
+                                    <th className="px-5 py-4 text-right font-medium">
                                         Paid Fine
                                     </th>
-                                    <th className="px-5 py-4 text-right font-semibold">
+                                    <th className="px-5 py-4 text-right font-medium">
                                         Due Fine
                                     </th>
-                                    <th className="px-5 py-4 text-center font-semibold">
+                                    <th className="px-5 py-4 text-center font-medium">
                                         Action
                                     </th>
                                 </tr>
@@ -691,28 +710,25 @@ export default function MemberSummary() {
                                         return (
                                             <tr
                                                 key={member.name}
-                                                className={`border-b border-stone-100 transition-colors hover:bg-emerald-50 ${index % 2 === 1
-                                                    ? 'bg-stone-50'
-                                                    : 'bg-white'
-                                                    }`}
+                                                className="border-b border-[#E5E5E7] transition-colors hover:bg-[#FAFAFA]"
                                             >
-                                                <td className="px-5 py-3.5 font-medium text-stone-800">
+                                                <td className="px-5 py-4 font-medium text-[#171717]">
                                                     {member.name}
                                                 </td>
 
-                                                <td className="px-5 py-3.5 text-right tabular-nums text-stone-700">
+                                                <td className="px-5 py-4 text-right tabular-nums text-[#626A78]">
                                                     {formatTaka(member.totalFine)}
                                                 </td>
 
-                                                <td className="px-5 py-3.5 text-right font-medium tabular-nums text-emerald-700">
+                                                <td className="px-5 py-4 text-right font-medium tabular-nums text-[#626A78]">
                                                     {formatTaka(member.paidFine)}
                                                 </td>
 
-                                                <td className="px-5 py-3.5 text-right font-semibold tabular-nums text-amber-700">
+                                                <td className="px-5 py-4 text-right font-semibold tabular-nums text-[#171717]">
                                                     {formatTaka(member.dueFine)}
                                                 </td>
 
-                                                <td className="px-5 py-3.5 text-center">
+                                                <td className="px-5 py-4 text-center">
                                                     {allTimeDue > 0 ? (
                                                         canWrite ? (
                                                             <button
@@ -720,17 +736,17 @@ export default function MemberSummary() {
                                                                 onClick={() =>
                                                                     openPaymentModal(member)
                                                                 }
-                                                                className="rounded-lg bg-emerald-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800"
+                                                                className="rounded-lg bg-[#1D1D1F] px-4 py-2 text-xs font-medium text-white transition hover:bg-black"
                                                             >
                                                                 Payment
                                                             </button>
                                                         ) : (
-                                                            <span className="text-xs text-stone-400">
+                                                            <span className="text-xs text-[#9298A3]">
                                                                 Login to Pay
                                                             </span>
                                                         )
                                                     ) : (
-                                                        <span className="font-medium text-emerald-700">
+                                                        <span className="text-xs font-medium text-[#626A78]">
                                                             Fully Paid
                                                         </span>
                                                     )}
@@ -742,7 +758,7 @@ export default function MemberSummary() {
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            className="px-5 py-12 text-center text-stone-500"
+                                            className="px-5 py-12 text-center text-[#858B97]"
                                         >
                                             {searchTerm.trim()
                                                 ? 'No matching member found.'
@@ -753,19 +769,23 @@ export default function MemberSummary() {
                             </tbody>
 
                             <tfoot>
-                                <tr className="border-t-2 border-emerald-900 bg-emerald-50 font-bold text-emerald-950">
+                                <tr className="border-t border-[#D9DDE4] bg-[#F6F7F9] font-semibold text-[#171717]">
                                     <td className="px-5 py-4">
                                         Grand Total
                                     </td>
+
                                     <td className="px-5 py-4 text-right tabular-nums">
                                         {formatTaka(totalFine)}
                                     </td>
-                                    <td className="px-5 py-4 text-right tabular-nums text-emerald-800">
+
+                                    <td className="px-5 py-4 text-right tabular-nums">
                                         {formatTaka(totalPaid)}
                                     </td>
-                                    <td className="px-5 py-4 text-right tabular-nums text-amber-800">
+
+                                    <td className="px-5 py-4 text-right tabular-nums">
                                         {formatTaka(totalDue)}
                                     </td>
+
                                     <td className="px-5 py-4"></td>
                                 </tr>
                             </tfoot>
@@ -773,7 +793,7 @@ export default function MemberSummary() {
                     </div>
 
                     {/* Footer */}
-                    <div className="border-t border-stone-200 px-5 py-3 text-xs text-stone-500">
+                    <div className="border-t border-[#E5E5E7] px-5 py-4 text-xs text-[#858B97]">
                         Showing {searchedMemberSummary.length} members
                         {selectedMonth !== 'all' &&
                             ` • ${formatMonth(selectedMonth)} only`}
@@ -783,14 +803,16 @@ export default function MemberSummary() {
 
             {/* Payment Modal */}
             {canWrite && isPaymentOpen && selectedMember && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
                     <div className="my-auto w-full max-w-md rounded-xl bg-white shadow-xl">
-                        <div className="flex items-center justify-between border-b border-stone-200 p-5">
+
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between border-b border-[#E5E5E7] px-5 py-5">
                             <div>
-                                <h2 className="text-lg font-bold text-stone-900">
+                                <h2 className="text-lg font-semibold text-[#171717]">
                                     Member Payment
                                 </h2>
-                                <p className="mt-1 text-sm text-stone-500">
+                                <p className="mt-1 text-sm text-[#626A78]">
                                     {selectedMember.name}
                                 </p>
                             </div>
@@ -799,7 +821,7 @@ export default function MemberSummary() {
                                 type="button"
                                 onClick={closePaymentModal}
                                 disabled={isPaying}
-                                className="rounded-lg px-3 py-1 text-xl text-stone-500 hover:bg-stone-100 disabled:opacity-50"
+                                className="rounded-lg px-3 py-1 text-xl text-[#626A78] transition hover:bg-[#F3F4F6] disabled:opacity-50"
                             >
                                 &times;
                             </button>
@@ -810,11 +832,11 @@ export default function MemberSummary() {
                             className="space-y-5 p-5"
                         >
                             {/* Total Outstanding */}
-                            <div className="rounded-lg bg-amber-50 p-4">
-                                <p className="text-sm text-amber-700">
+                            <div className="rounded-lg bg-[#F3F4F6] p-4">
+                                <p className="text-sm text-[#626A78]">
                                     Total Outstanding Due
                                 </p>
-                                <p className="mt-1 text-2xl font-bold text-amber-800">
+                                <p className="mt-1 text-2xl font-bold text-[#171717]">
                                     {formatTaka(
                                         getMemberAllTimeDue(selectedMember.name)
                                     )}
@@ -823,7 +845,7 @@ export default function MemberSummary() {
 
                             {/* Payment Type */}
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-stone-700">
+                                <label className="mb-2 block text-sm font-medium text-[#171717]">
                                     Payment Type
                                 </label>
 
@@ -834,8 +856,8 @@ export default function MemberSummary() {
                                             handlePaymentTypeChange('partial')
                                         }
                                         className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${paymentType === 'partial'
-                                            ? 'border-emerald-800 bg-emerald-50 text-emerald-900'
-                                            : 'border-stone-300 text-stone-600 hover:bg-stone-50'
+                                            ? 'border-[#1D1D1F] bg-[#1D1D1F] text-white'
+                                            : 'border-[#D9DDE4] text-[#626A78] hover:bg-[#F6F7F9]'
                                             }`}
                                     >
                                         Partial
@@ -847,8 +869,8 @@ export default function MemberSummary() {
                                             handlePaymentTypeChange('full')
                                         }
                                         className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${paymentType === 'full'
-                                            ? 'border-emerald-800 bg-emerald-50 text-emerald-900'
-                                            : 'border-stone-300 text-stone-600 hover:bg-stone-50'
+                                            ? 'border-[#1D1D1F] bg-[#1D1D1F] text-white'
+                                            : 'border-[#D9DDE4] text-[#626A78] hover:bg-[#F6F7F9]'
                                             }`}
                                     >
                                         Full
@@ -860,8 +882,8 @@ export default function MemberSummary() {
                                             handlePaymentTypeChange('monthly')
                                         }
                                         className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${paymentType === 'monthly'
-                                            ? 'border-emerald-800 bg-emerald-50 text-emerald-900'
-                                            : 'border-stone-300 text-stone-600 hover:bg-stone-50'
+                                            ? 'border-[#1D1D1F] bg-[#1D1D1F] text-white'
+                                            : 'border-[#D9DDE4] text-[#626A78] hover:bg-[#F6F7F9]'
                                             }`}
                                     >
                                         Monthly
@@ -873,20 +895,20 @@ export default function MemberSummary() {
                             {paymentType === 'monthly' && (
                                 <div>
                                     <div className="mb-2 flex items-center justify-between">
-                                        <label className="text-sm font-medium text-stone-700">
+                                        <label className="text-sm font-medium text-[#171717]">
                                             Select Months to Pay
                                         </label>
-                                        <span className="text-xs text-stone-500">
+                                        <span className="text-xs text-[#858B97]">
                                             {selectedMonths.length} selected
                                         </span>
                                     </div>
 
-                                    <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-stone-200 p-3">
+                                    <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-[#E0E2E7] p-3">
                                         {memberMonthlyDues.length > 0 ? (
                                             memberMonthlyDues.map((item) => (
                                                 <label
                                                     key={item.month}
-                                                    className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2 transition hover:bg-emerald-50"
+                                                    className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2 transition hover:bg-[#F6F7F9]"
                                                 >
                                                     <div className="flex min-w-0 items-center gap-3">
                                                         <input
@@ -901,14 +923,14 @@ export default function MemberSummary() {
                                                                 )
                                                             }
                                                             disabled={isPaying}
-                                                            className="h-4 w-4 rounded border-stone-300 accent-emerald-800"
+                                                            className="h-4 w-4 rounded border-[#D9DDE4] accent-[#1D1D1F]"
                                                         />
 
                                                         <div>
-                                                            <p className="text-sm font-medium text-stone-800">
+                                                            <p className="text-sm font-medium text-[#171717]">
                                                                 {formatMonth(item.month)}
                                                             </p>
-                                                            <p className="text-xs text-stone-500">
+                                                            <p className="text-xs text-[#858B97]">
                                                                 {item.entryCount} penalty{' '}
                                                                 {item.entryCount === 1
                                                                     ? 'entry'
@@ -917,39 +939,39 @@ export default function MemberSummary() {
                                                         </div>
                                                     </div>
 
-                                                    <span className="shrink-0 text-sm font-semibold tabular-nums text-amber-700">
+                                                    <span className="shrink-0 text-sm font-semibold tabular-nums text-[#171717]">
                                                         {formatTaka(item.dueAmount)}
                                                     </span>
                                                 </label>
                                             ))
                                         ) : (
-                                            <p className="py-5 text-center text-sm text-stone-500">
+                                            <p className="py-5 text-center text-sm text-[#858B97]">
                                                 No monthly dues available.
                                             </p>
                                         )}
                                     </div>
 
-                                    <div className="mt-3 rounded-lg bg-emerald-50 p-3">
+                                    <div className="mt-3 rounded-lg bg-[#F3F4F6] p-3">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-emerald-800">
+                                            <span className="text-sm text-[#626A78]">
                                                 Selected Months
                                             </span>
-                                            <span className="text-sm font-semibold text-emerald-900">
+                                            <span className="text-sm font-semibold text-[#171717]">
                                                 {selectedMonths.length}
                                             </span>
                                         </div>
 
                                         <div className="mt-2 flex items-center justify-between">
-                                            <span className="text-sm font-medium text-emerald-800">
+                                            <span className="text-sm font-medium text-[#626A78]">
                                                 Total Payment
                                             </span>
-                                            <span className="text-xl font-bold text-emerald-900">
+                                            <span className="text-xl font-bold text-[#171717]">
                                                 {formatTaka(selectedMonthsTotal)}
                                             </span>
                                         </div>
                                     </div>
 
-                                    <p className="mt-2 text-xs leading-5 text-stone-500">
+                                    <p className="mt-2 text-xs leading-5 text-[#858B97]">
                                         Select the months you want to pay. Only outstanding dues from selected months will be paid.
                                     </p>
                                 </div>
@@ -960,7 +982,7 @@ export default function MemberSummary() {
                                 <div>
                                     <label
                                         htmlFor="payment-amount"
-                                        className="mb-2 block text-sm font-medium text-stone-700"
+                                        className="mb-2 block text-sm font-medium text-[#171717]"
                                     >
                                         Payment Amount
                                     </label>
@@ -983,11 +1005,11 @@ export default function MemberSummary() {
                                         disabled={paymentType === 'full'}
                                         placeholder="Enter payment amount"
                                         required={paymentType === 'partial'}
-                                        className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm text-stone-700 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 disabled:bg-stone-100"
+                                        className="w-full rounded-lg border border-[#D9DDE4] px-3 py-2.5 text-sm text-[#171717] outline-none focus:border-[#777D87] disabled:bg-[#F3F4F6]"
                                     />
 
                                     {paymentType === 'full' && (
-                                        <p className="mt-1 text-xs text-stone-500">
+                                        <p className="mt-1 text-xs text-[#858B97]">
                                             Full outstanding amount will be paid.
                                         </p>
                                     )}
@@ -998,7 +1020,7 @@ export default function MemberSummary() {
                             <div>
                                 <label
                                     htmlFor="payment-date"
-                                    className="mb-2 block text-sm font-medium text-stone-700"
+                                    className="mb-2 block text-sm font-medium text-[#171717]"
                                 >
                                     Payment Date
                                 </label>
@@ -1011,17 +1033,18 @@ export default function MemberSummary() {
                                         setPaymentDate(event.target.value)
                                     }
                                     required
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm text-stone-700 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
+                                    className="w-full rounded-lg border border-[#D9DDE4] px-3 py-2.5 text-sm text-[#171717] outline-none focus:border-[#777D87]"
                                 />
                             </div>
 
                             {/* Payment Information */}
-                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-800">
+                            <div className="rounded-lg border border-[#E0E2E7] bg-[#F6F7F9] p-3 text-xs leading-5 text-[#626A78]">
                                 {paymentType === 'monthly'
                                     ? 'Only the selected months will be paid. Other months will remain unchanged.'
                                     : 'Payment will automatically be allocated to the oldest unpaid penalty entries first, across all months.'}
                             </div>
 
+                            {/* Payment Error */}
                             {paymentError && (
                                 <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                                     {paymentError}
@@ -1034,7 +1057,7 @@ export default function MemberSummary() {
                                     type="button"
                                     onClick={closePaymentModal}
                                     disabled={isPaying}
-                                    className="flex-1 rounded-lg border border-stone-300 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+                                    className="flex-1 rounded-lg border border-[#D9DDE4] px-4 py-2.5 text-sm font-medium text-[#626A78] transition hover:bg-[#F6F7F9] disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
@@ -1047,7 +1070,7 @@ export default function MemberSummary() {
                                             (selectedMonths.length === 0 ||
                                                 selectedMonthsTotal <= 0))
                                     }
-                                    className="flex-1 rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="flex-1 rounded-lg bg-[#1D1D1F] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isPaying
                                         ? 'Processing...'

@@ -81,65 +81,65 @@ export default function DashboardSummary() {
     );
 
     // Last 6 Months Data
-  const [monthlyData, setMonthlyData] = useState([]);
+    const [monthlyData, setMonthlyData] = useState([]);
 
-useEffect(() => {
-    const currentDate = new Date();
-    const months = [];
+    useEffect(() => {
+        const currentDate = new Date();
+        const months = [];
 
-    for (let i = 5; i >= 0; i--) {
-        const date = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth() - i,
-            1
-        );
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() - i,
+                1
+            );
 
-        const year = date.getFullYear();
-        const monthNumber = String(date.getMonth() + 1).padStart(2, '0');
-        const key = `${year}-${monthNumber}`;
+            const year = date.getFullYear();
+            const monthNumber = String(date.getMonth() + 1).padStart(2, '0');
+            const key = `${year}-${monthNumber}`;
 
-        months.push({
-            key,
-            label: date.toLocaleDateString('en-US', {
-                month: 'short',
-            }),
-            total: 0,
-            paid: 0,
-        });
-    }
-
-    entries.forEach((entry) => {
-        if (
-            typeof entry.date !== 'string' ||
-            !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)
-        ) {
-            return;
+            months.push({
+                key,
+                label: date.toLocaleDateString('en-US', {
+                    month: 'short',
+                }),
+                total: 0,
+                paid: 0,
+            });
         }
 
-        const monthKey = entry.date.slice(0, 7);
-        const currentMonth = months.find(
-            (month) => month.key === monthKey
+        entries.forEach((entry) => {
+            if (
+                typeof entry.date !== 'string' ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)
+            ) {
+                return;
+            }
+
+            const monthKey = entry.date.slice(0, 7);
+            const currentMonth = months.find(
+                (month) => month.key === monthKey
+            );
+
+            if (!currentMonth) return;
+
+            currentMonth.total += entry.amount;
+            currentMonth.paid += entry.paidAmount;
+        });
+
+        setMonthlyData(
+            months.map((month) => ({
+                ...month,
+                total: toMoney(month.total),
+                paid: toMoney(month.paid),
+            }))
         );
+    }, [entries]);
 
-        if (!currentMonth) return;
-
-        currentMonth.total += entry.amount;
-        currentMonth.paid += entry.paidAmount;
-    });
-
-    setMonthlyData(
-        months.map((month) => ({
-            ...month,
-            total: toMoney(month.total),
-            paid: toMoney(month.paid),
-        }))
+    const maxMonthlyFine = Math.max(
+        ...monthlyData.map((month) => month.total),
+        0
     );
-}, [entries]);
-
-const maxMonthlyFine = Math.max(
-    ...monthlyData.map((month) => month.total),
-    0
-);
 
     // Summary Cards
     const summaryCards = [
@@ -203,66 +203,79 @@ const maxMonthlyFine = Math.max(
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
+
+            {/* Dashboard Heading */}
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight text-[#171717]">
+                    Dashboard
+                </h1>
+                <p className="mt-2 text-sm text-[#626A78]">
+                    Overview of penalty records and payment activity.
+                </p>
+            </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 {summaryCards.map((card) => (
                     <div
                         key={card.title}
-                        className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                        className="rounded-xl border border-[#E0E2E7] bg-white p-5 transition-colors hover:border-[#BFC3CA]"
                     >
                         <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-stone-500">
+                            <p className="text-sm font-medium text-[#626A78]">
                                 {card.title}
                             </p>
 
-                            <div
-                                className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl ${card.iconBg} ${card.iconColor}`}
-                            >
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F3F4F6] text-lg text-[#252525]">
                                 {card.icon}
                             </div>
                         </div>
 
-                        <h2 className={`mt-4 break-words text-2xl font-bold ${card.valueColor}`}>
+                        <h2 className="mt-5 break-words text-3xl font-bold tracking-tight text-[#171717]">
                             {card.value}
                         </h2>
 
-                        <p className="mt-2 text-xs text-stone-400">
+                        <p className="mt-2 text-xs text-[#858B97]">
                             {card.description}
                         </p>
                     </div>
                 ))}
             </div>
 
-            {/* Simple Monthly Graph */}
-            <section className="rounded-xl border border-stone-200 bg-white shadow-sm">
+            {/* Monthly Analytics */}
+            <section className="overflow-hidden rounded-xl border border-[#E0E2E7] bg-white">
 
-                <div className="flex flex-col gap-3 border-b border-stone-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+                {/* Analytics Header */}
+                <div className="flex flex-col gap-4 border-b border-[#E0E2E7] px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+
                     <div>
-                        <h2 className="text-lg font-bold text-stone-900">
+                        <h2 className="text-base font-semibold text-[#171717]">
                             Monthly Analytics
                         </h2>
-                        <p className="mt-1 text-sm text-stone-500">
+
+                        <p className="mt-1 text-sm text-[#858B97]">
                             Last 6 months fine overview
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs font-medium text-stone-600">
+                    <div className="flex items-center gap-5 text-xs font-medium text-[#626A78]">
                         <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-sm bg-emerald-800" />
+                            <span className="h-2.5 w-2.5 rounded-sm bg-[#1D1D1F]" />
                             Total Fine
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-sm bg-amber-500" />
+                            <span className="h-2.5 w-2.5 rounded-sm bg-[#A7A7A7]" />
                             Paid Amount
                         </div>
                     </div>
                 </div>
 
-                <div className="p-5">
-                    <div className="flex h-64 items-end justify-around gap-3 border-b border-stone-200 pb-0">
+                {/* Chart */}
+                <div className="p-5 sm:p-7">
+                    <div className="flex h-72 items-end justify-around gap-3 border-b border-[#E0E2E7] pb-0">
+
                         {monthlyData.map((month) => {
                             const totalHeight = maxMonthlyFine > 0
                                 ? (month.total / maxMonthlyFine) * 100
@@ -277,10 +290,11 @@ const maxMonthlyFine = Math.max(
                                     key={month.key}
                                     className="flex h-full flex-1 flex-col items-center justify-end"
                                 >
-                                    <div className="flex h-full w-full items-end justify-center gap-1 sm:gap-2">
+                                    <div className="flex h-full w-full items-end justify-center gap-1.5 sm:gap-3">
+
                                         <div
                                             title={`Total Fine: ${formatTaka(month.total)}`}
-                                            className="w-5 max-w-[40%] rounded-t-md bg-emerald-800 transition-all sm:w-8"
+                                            className="w-5 max-w-[40%] rounded-t-sm bg-[#1D1D1F] transition-all duration-300 sm:w-9"
                                             style={{
                                                 height: `${totalHeight}%`,
                                                 minHeight: month.total > 0 ? '3px' : '0px',
@@ -289,25 +303,28 @@ const maxMonthlyFine = Math.max(
 
                                         <div
                                             title={`Paid Amount: ${formatTaka(month.paid)}`}
-                                            className="w-5 max-w-[40%] rounded-t-md bg-amber-500 transition-all sm:w-8"
+                                            className="w-5 max-w-[40%] rounded-t-sm bg-[#A7A7A7] transition-all duration-300 sm:w-9"
                                             style={{
                                                 height: `${paidHeight}%`,
                                                 minHeight: month.paid > 0 ? '3px' : '0px',
                                             }}
                                         />
+
                                     </div>
 
-                                    <p className="pt-3 text-xs font-medium text-stone-500">
+                                    <p className="pt-4 text-xs font-medium text-[#626A78]">
                                         {month.label}
                                     </p>
                                 </div>
                             );
                         })}
+
                     </div>
                 </div>
 
-                <div className="border-t border-stone-100 px-5 py-3">
-                    <p className="text-xs text-stone-400">
+                {/* Footer */}
+                <div className="border-t border-[#E0E2E7] px-5 py-3.5">
+                    <p className="text-xs text-[#858B97]">
                         Monthly figures are grouped by penalty entry date.
                     </p>
                 </div>

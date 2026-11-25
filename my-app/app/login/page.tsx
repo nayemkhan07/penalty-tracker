@@ -35,22 +35,25 @@ export default function LoginPage() {
         }
     }
 
+
     return (
-        <main className="flex min-h-screen items-center justify-center bg-stone-100 p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+        <main className="flex min-h-screen items-center justify-center bg-white px-4 py-10">
+            <div className="w-full max-w-[400px]">
 
-                <h1 className="text-2xl font-bold text-green-950">
-                    Penalty Tracker
-                </h1>
+                <div className="mb-10 text-center">
+                    <h1 className="text-3xl font-semibold tracking-tight text-[#171717]">
+                        Penalty Tracker
+                    </h1>
 
-                <p className="mt-2 text-sm text-slate-500">
-                    Sign in to your admin account.
-                </p>
+                    <p className="mt-3 text-sm text-[#737373]">
+                        Sign in to your account to continue.
+                    </p>
+                </div>
 
-                <form onSubmit={handleLogin} className="mt-8 space-y-5">
+                <form onSubmit={handleLogin} className="space-y-6">
 
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-green-950">
+                        <label className="mb-2 block text-sm font-medium text-[#262626]">
                             Email Address
                         </label>
 
@@ -60,12 +63,12 @@ export default function LoginPage() {
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Enter your email"
                             required
-                            className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-green-800 text-green-950"
+                            className="w-full border border-[#D4D4D4] bg-white px-4 py-3 text-sm text-[#171717] outline-none transition placeholder:text-[#A3A3A3] focus:border-black"
                         />
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-green-950">
+                        <label className="mb-2 block text-sm font-medium text-[#262626]">
                             Password
                         </label>
 
@@ -75,7 +78,7 @@ export default function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter your password"
                             required
-                            className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-green-800 text-green-950   "
+                            className="w-full border border-[#D4D4D4] bg-white px-4 py-3 text-sm text-[#171717] outline-none transition placeholder:text-[#A3A3A3] focus:border-black"
                         />
                     </div>
 
@@ -88,13 +91,19 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full rounded-lg bg-green-950 py-3 font-medium text-white hover:bg-green-800 disabled:opacity-50"
+                        className="w-full bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {loading ? 'Signing in...' : 'Login'}
                     </button>
 
                 </form>
+
+                <p className="mt-8 text-center text-xs text-[#A3A3A3]">
+                    Penalty Tracker Management System
+                </p>
+
             </div>
         </main>
     );
+
 }

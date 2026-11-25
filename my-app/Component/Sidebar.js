@@ -29,38 +29,38 @@ export default function Sidebar({
 
             <aside
                 className={`fixed left-0 top-0 z-50 h-screen border-r border-stone-200 bg-white transition-all duration-200
-                    ${isCollapsed ? 'w-16' : 'w-64'}
-                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-                    lg:translate-x-0`}
+                ${isCollapsed ? 'w-16' : 'w-64'}
+                ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                lg:translate-x-0`}
             >
-                <div className="p-5">
+                <div className="px-4 pt-6">
                     {isCollapsed ? (
                         <button
                             onClick={onToggleCollapse}
-                            className="text-2xl text-stone-700 hover:text-green-900"
+                            className="flex h-10 w-full items-center justify-center text-xl text-stone-700 transition hover:text-black"
                             aria-label="Expand sidebar"
                         >
                             ☰
                         </button>
                     ) : (
                         <>
-                            <div className="flex items-center justify-between border-b border-stone-100 px-2 pb-6">
-                                <div>
-                                    <h1 className="text-base font-semibold text-stone-900">
-                                        Penalty Tracker
-                                    </h1>
-                                </div>
+                            {/* Brand */}
+                            <div className="flex items-center justify-between px-3">
+                                <h1 className="text-base font-semibold tracking-tight text-[#171717]">
+                                    Penalty Tracker
+                                </h1>
 
                                 <button
                                     onClick={onToggleCollapse}
-                                    className="text-xl text-stone-500 hover:text-stone-900"
+                                    className="text-sm text-stone-400 transition hover:text-stone-900"
                                     aria-label="Collapse sidebar"
                                 >
-                                    X
+                                    ‹
                                 </button>
                             </div>
 
-                            <nav className="mt-6 space-y-1.5">
+                            {/* Navigation */}
+                            <nav className="mt-9 space-y-1">
                                 {navItems.map((item) => {
                                     const isActive = pathname === item.href;
 
@@ -69,10 +69,10 @@ export default function Sidebar({
                                             key={item.name}
                                             href={item.href}
                                             onClick={onClose}
-                                            className={`block rounded-lg px-3.5 py-2.5 text-sm font-medium
-                                                ${isActive
-                                                    ? 'bg-green-900 text-white'
-                                                    : 'text-stone-600 hover:bg-stone-100'
+                                            className={`block rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-150
+                                            ${isActive
+                                                    ? 'bg-[#1C1C1E] text-white'
+                                                    : 'text-[#626A78] hover:bg-[#F3F3F4] hover:text-[#171717]'
                                                 }`}
                                         >
                                             {item.name}

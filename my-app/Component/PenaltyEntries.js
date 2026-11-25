@@ -307,27 +307,27 @@ export default function PenaltyEntries() {
     }
 
     return (
-        <main className="min-h-screen bg-stone-50 p-4 text-slate-800 sm:p-8">
+        <main className="min-h-screen bg-white p-4 text-[#171717] sm:p-8">
             <div className="mx-auto max-w-7xl">
 
                 {/* Page Heading */}
                 <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold">
+                        <h1 className="text-3xl font-bold tracking-tight">
                             Penalty Entries
                         </h1>
 
-                        <p className="mt-2 text-sm text-slate-500">
+                        <p className="mt-2 text-sm text-[#626A78]">
                             Manage and track all penalty records.
                         </p>
                     </div>
 
-                    {/* Add Entry - Only for logged-in users */}
+                    {/* Add Entry */}
                     {canWrite && (
                         <button
                             type="button"
                             onClick={openAddModal}
-                            className="rounded-lg bg-green-950 px-5 py-3 font-medium text-white hover:bg-green-800"
+                            className="rounded-lg bg-[#1D1D1F] px-5 py-3 text-sm font-medium text-white transition hover:bg-black"
                         >
                             + Add Entry
                         </button>
@@ -345,50 +345,54 @@ export default function PenaltyEntries() {
                 )}
 
                 {/* Entries Table */}
-                <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-                    <div className="border-b border-stone-200 p-5">
+                <div className="overflow-hidden rounded-xl border border-[#E0E2E7] bg-white">
+
+                    {/* Table Header */}
+                    <div className="border-b border-[#E0E2E7] px-5 py-4">
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-lg font-semibold">
-                                    All Entries
+                                <h2 className="text-sm font-semibold text-[#171717]">
+                                    All entries
                                 </h2>
 
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-[#626A78]">
                                     Showing {filteredEntries.length} of {entries.length} entries
                                 </p>
                             </div>
 
                             {/* Member Search */}
-                            <div className="w-full sm:w-72">
+                            <div className="w-full sm:w-64">
                                 <input
                                     type="text"
                                     value={searchTerm}
                                     onChange={(event) =>
                                         setSearchTerm(event.target.value)
                                     }
-                                    placeholder="Search member name..."
-                                    className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-green-800 focus:ring-2 focus:ring-green-800/10"
+                                    placeholder="Search member name"
+                                    className="w-full rounded-lg border border-[#D9DDE4] bg-white px-3 py-2.5 text-sm text-[#171717] outline-none transition placeholder:text-[#9298A3] focus:border-[#777D87]"
                                 />
                             </div>
                         </div>
                     </div>
 
+                    {/* Table */}
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[1100px] text-left text-sm">
-                            <thead className="bg-stone-100 text-slate-600">
-                                <tr>
-                                    <th className="px-4 py-4">#</th>
-                                    <th className="px-4 py-4">Date</th>
-                                    <th className="px-4 py-4">Member</th>
-                                    <th className="px-4 py-4">Reason</th>
-                                    <th className="px-4 py-4">Penalty Count</th>
-                                    <th className="px-4 py-4">Amount</th>
-                                    <th className="px-4 py-4">Status</th>
-                                    <th className="px-4 py-4">Payment Date</th>
 
-                                    {/* Action Column - Only for logged-in users */}
+                            <thead className="bg-[#F6F7F9] text-[#626A78]">
+                                <tr>
+                                    <th className="px-4 py-3.5 font-medium">#</th>
+                                    <th className="px-4 py-3.5 font-medium">Date</th>
+                                    <th className="px-4 py-3.5 font-medium">Member</th>
+                                    <th className="px-4 py-3.5 font-medium">Reason</th>
+                                    <th className="px-4 py-3.5 text-center font-medium">Count</th>
+                                    <th className="px-4 py-3.5 font-medium">Amount</th>
+                                    <th className="px-4 py-3.5 font-medium">Status</th>
+                                    <th className="px-4 py-3.5 font-medium">Payment date</th>
+
+                                    {/* Action Column */}
                                     {canWrite && (
-                                        <th className="px-4 py-4">
+                                        <th className="px-4 py-3.5 font-medium">
                                             Action
                                         </th>
                                     )}
@@ -399,56 +403,56 @@ export default function PenaltyEntries() {
                                 {filteredEntries.map((entry, index) => (
                                     <tr
                                         key={entry.id}
-                                        className="border-t border-stone-200 hover:bg-stone-50"
+                                        className="border-t border-[#E0E2E7] transition-colors hover:bg-[#FAFAFA]"
                                     >
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-4 text-[#626A78]">
                                             {index + 1}
                                         </td>
 
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-4 font-medium text-[#171717]">
                                             {entry.date || '—'}
                                         </td>
 
-                                        <td className="px-4 py-4 font-medium">
+                                        <td className="px-4 py-4 font-medium text-[#171717]">
                                             {entry.member || '—'}
                                         </td>
 
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-4 text-[#626A78]">
                                             {entry.reason || '—'}
                                         </td>
 
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-4 text-center font-medium text-[#171717]">
                                             {entry.goalCount ?? '—'}
                                         </td>
 
-                                        <td className="px-4 py-4 font-medium">
+                                        <td className="px-4 py-4 font-semibold text-[#171717]">
                                             {formatTaka(entry.amount)}
                                         </td>
 
                                         <td className="px-4 py-4">
                                             <span
-                                                className={`rounded-full px-3 py-1 text-xs font-medium ${entry.status === 'Paid'
-                                                    ? 'bg-green-100 text-green-800'
+                                                className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${entry.status === 'Paid'
+                                                    ? 'bg-[#1D1D1F] text-white'
                                                     : entry.status === 'Partial'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : 'bg-amber-100 text-amber-800'
+                                                        ? 'border border-[#D9DDE4] bg-white text-[#626A78]'
+                                                        : 'border border-[#E0E2E7] bg-[#F6F7F9] text-[#626A78]'
                                                     }`}
                                             >
                                                 {entry.status}
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-4 text-[#626A78]">
                                             {entry.paymentDate || '—'}
                                         </td>
 
-                                        {/* Edit Button - Only for logged-in users */}
+                                        {/* Edit Button */}
                                         {canWrite && (
                                             <td className="px-4 py-4">
                                                 <button
                                                     type="button"
                                                     onClick={() => openEditModal(entry)}
-                                                    className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700 hover:bg-blue-100"
+                                                    className="rounded-md border border-[#D9DDE4] px-3 py-1.5 text-xs font-medium text-[#171717] transition hover:bg-[#F3F4F6]"
                                                 >
                                                     Edit
                                                 </button>
@@ -463,13 +467,13 @@ export default function PenaltyEntries() {
                                             colSpan={canWrite ? 9 : 8}
                                             className="px-6 py-16 text-center"
                                         >
-                                            <p className="font-medium text-slate-700">
+                                            <p className="font-medium text-[#171717]">
                                                 {searchTerm.trim()
                                                     ? 'No matching member found.'
                                                     : 'No entries yet.'}
                                             </p>
 
-                                            <p className="mt-1 text-sm text-slate-500">
+                                            <p className="mt-1 text-sm text-[#858B97]">
                                                 {searchTerm.trim()
                                                     ? 'Try searching with another member name.'
                                                     : canWrite
@@ -485,10 +489,10 @@ export default function PenaltyEntries() {
                 </div>
             </div>
 
-            {/* Add/Edit Modal - Only for logged-in users */}
+            {/* Add/Edit Modal */}
             {isModalOpen && canWrite && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4"
                     onMouseDown={(event) => {
                         if (
                             event.target === event.currentTarget &&
@@ -502,21 +506,21 @@ export default function PenaltyEntries() {
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="entry-title"
-                        className="my-auto w-full max-w-2xl rounded-2xl bg-white shadow-2xl"
+                        className="my-auto w-full max-w-2xl rounded-xl border border-[#E0E2E7] bg-white shadow-xl"
                     >
                         {/* Modal Heading */}
-                        <div className="flex items-center justify-between border-b border-stone-200 p-6">
+                        <div className="flex items-center justify-between border-b border-[#E0E2E7] px-6 py-5">
                             <div>
                                 <h2
                                     id="entry-title"
-                                    className="text-xl font-bold"
+                                    className="text-xl font-semibold text-[#171717]"
                                 >
                                     {editingId !== null
                                         ? 'Edit Entry'
                                         : 'Add New Entry'}
                                 </h2>
 
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-[#858B97]">
                                     Fill in the penalty details below.
                                 </p>
                             </div>
@@ -526,7 +530,7 @@ export default function PenaltyEntries() {
                                 onClick={closeModal}
                                 disabled={isSaving}
                                 aria-label="Close modal"
-                                className="rounded-lg px-3 py-2 text-2xl text-slate-500 hover:bg-stone-100 disabled:opacity-50"
+                                className="rounded-lg px-3 py-2 text-2xl text-[#626A78] transition hover:bg-[#F3F4F6] disabled:opacity-50"
                             >
                                 ×
                             </button>
@@ -538,7 +542,7 @@ export default function PenaltyEntries() {
 
                                 {/* Date */}
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">
+                                    <label className="mb-2 block text-sm font-medium text-[#171717]">
                                         Date *
                                     </label>
 
@@ -548,13 +552,13 @@ export default function PenaltyEntries() {
                                         value={form.date}
                                         onChange={handleChange}
                                         required
-                                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-green-800 focus:ring-2 focus:ring-green-800/10"
+                                        className="w-full rounded-lg border border-[#D9DDE4] bg-white px-3 py-3 text-sm outline-none transition focus:border-[#777D87]"
                                     />
                                 </div>
 
                                 {/* Member */}
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">
+                                    <label className="mb-2 block text-sm font-medium text-[#171717]">
                                         Member *
                                     </label>
 
@@ -563,7 +567,7 @@ export default function PenaltyEntries() {
                                         value={form.member}
                                         onChange={handleChange}
                                         required
-                                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-green-800 focus:ring-2 focus:ring-green-800/10"
+                                        className="w-full rounded-lg border border-[#D9DDE4] bg-white px-3 py-3 text-sm outline-none transition focus:border-[#777D87]"
                                     >
                                         <option value="">
                                             Select member
@@ -579,7 +583,7 @@ export default function PenaltyEntries() {
 
                                 {/* Reason */}
                                 <div className="sm:col-span-2">
-                                    <label className="mb-2 block text-sm font-medium">
+                                    <label className="mb-2 block text-sm font-medium text-[#171717]">
                                         Reason *
                                     </label>
 
@@ -590,13 +594,13 @@ export default function PenaltyEntries() {
                                         placeholder="Enter reason for penalty"
                                         required
                                         rows={3}
-                                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-green-800 focus:ring-2 focus:ring-green-800/10"
+                                        className="w-full rounded-lg border border-[#D9DDE4] bg-white px-3 py-3 text-sm outline-none transition placeholder:text-[#9298A3] focus:border-[#777D87]"
                                     />
                                 </div>
 
                                 {/* Penalty Count */}
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">
+                                    <label className="mb-2 block text-sm font-medium text-[#171717]">
                                         Penalty Count *
                                     </label>
 
@@ -609,17 +613,17 @@ export default function PenaltyEntries() {
                                         min="0.25"
                                         step="0.25"
                                         required
-                                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-green-800 focus:ring-2 focus:ring-green-800/10"
+                                        className="w-full rounded-lg border border-[#D9DDE4] bg-white px-3 py-3 text-sm outline-none transition focus:border-[#777D87]"
                                     />
 
-                                    <p className="mt-1 text-xs text-slate-500">
+                                    <p className="mt-1 text-xs text-[#858B97]">
                                         1 penalty = ৳50
                                     </p>
                                 </div>
 
                                 {/* Automatic Amount */}
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">
+                                    <label className="mb-2 block text-sm font-medium text-[#171717]">
                                         Amount (৳)
                                     </label>
 
@@ -627,17 +631,17 @@ export default function PenaltyEntries() {
                                         type="text"
                                         value={formatTaka(amount)}
                                         readOnly
-                                        className="w-full cursor-not-allowed rounded-lg border border-stone-300 bg-stone-100 px-3 py-3 text-sm text-slate-700 outline-none"
+                                        className="w-full cursor-not-allowed rounded-lg border border-[#D9DDE4] bg-[#F6F7F9] px-3 py-3 text-sm text-[#626A78] outline-none"
                                     />
 
-                                    <p className="mt-1 text-xs text-slate-500">
+                                    <p className="mt-1 text-xs text-[#858B97]">
                                         Amount is calculated automatically.
                                     </p>
                                 </div>
                             </div>
 
-                            {/* Payment information notice */}
-                            <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                            {/* Payment Information */}
+                            <div className="mt-5 rounded-lg border border-[#E0E2E7] bg-[#F6F7F9] p-3 text-sm text-[#626A78]">
                                 Payment status and payment date will be managed
                                 from the Member Summary page.
                             </div>
@@ -650,12 +654,12 @@ export default function PenaltyEntries() {
                             )}
 
                             {/* Form Buttons */}
-                            <div className="mt-8 flex justify-end gap-3 border-t border-stone-200 pt-5">
+                            <div className="mt-8 flex justify-end gap-3 border-t border-[#E0E2E7] pt-5">
                                 <button
                                     type="button"
                                     onClick={closeModal}
                                     disabled={isSaving}
-                                    className="rounded-lg border border-stone-300 px-5 py-3 font-medium hover:bg-stone-50 disabled:opacity-50"
+                                    className="rounded-lg border border-[#D9DDE4] px-5 py-3 text-sm font-medium text-[#626A78] transition hover:bg-[#F6F7F9] disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
@@ -663,7 +667,7 @@ export default function PenaltyEntries() {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="rounded-lg bg-green-950 px-6 py-3 font-medium text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-lg bg-[#1D1D1F] px-6 py-3 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isSaving
                                         ? 'Saving...'
